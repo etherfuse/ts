@@ -24,12 +24,6 @@
     "url": "https://github.com/etherfuse/etherfuse-common/issues"
   },
   "homepage": "https://github.com/etherfuse/etherfuse-common#readme",
-  "devDependencies": {
-    "mocha": "^10.2.0",
-    "typescript": "^5.2.2"
-  },
-  "dependencies": {
-    "@types/mocha": "^10.0.4",
-    "@types/node": "^20.9.0"
-  }
+  "devDependencies": {},
+  "dependencies": {}
 }
