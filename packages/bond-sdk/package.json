@@ -1,0 +1,35 @@
+{
+  "name": "bond-sdk",
+  "version": "1.0.0",
+  "description": "An sdk to the etherfuse bond program",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc -w"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/etherfuse/etherfuse-common.git"
+  },
+  "keywords": [
+    "solana",
+    "bond",
+    "sdk",
+    "client",
+    "etherfuse"
+  ],
+  "author": "AJ Taylor",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/etherfuse/etherfuse-common/issues"
+  },
+  "homepage": "https://github.com/etherfuse/etherfuse-common#readme",
+  "devDependencies": {
+    "mocha": "^10.2.0",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "@types/mocha": "^10.0.4",
+    "@types/node": "^20.9.0"
+  }
+}

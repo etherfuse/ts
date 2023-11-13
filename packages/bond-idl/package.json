@@ -1,0 +1,39 @@
+{
+  "name": "bond-idl",
+  "version": "1.0.0",
+  "description": "the idl to the bond program",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "test": "npx ts-mocha './tests/idl.test.ts'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/etherfuse/etherfuse-common.git"
+  },
+  "keywords": [
+    "bond",
+    "idl",
+    "solana",
+    "client"
+  ],
+  "author": "AJ Taylor",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/etherfuse/etherfuse-common/issues"
+  },
+  "homepage": "https://github.com/etherfuse/etherfuse-common#readme",
+  "devDependencies": {
+    "@types/chai": "^4.3.10",
+    "chai": "^4.3.10",
+    "mocha": "^10.2.0",
+    "ts-mocha": "^10.0.0",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "@types/mocha": "^10.0.4",
+    "@types/node": "^20.9.0",
+    "ts-node": "^10.9.1"
+  }
+}
