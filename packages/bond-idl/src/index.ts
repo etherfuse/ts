@@ -1,4 +1,4 @@
-import BondIdl from "./bond.json";
+import BondIdl from './bond.json';
 
 /**
  * Bond IDL
