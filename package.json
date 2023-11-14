@@ -9,6 +9,7 @@
     "packages/*"
   ],
   "devDependencies": {
+    "@coral-xyz/anchor": "^0.29.0",
     "@coral-xyz/borsh": "^0.29.0",
     "@solana/web3.js": "^1.87.6",
     "@types/chai": "^4.3.10",
