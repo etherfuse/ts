@@ -1,0 +1,42 @@
+import { TransactionInstruction, PublicKey, AccountMeta } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
+import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars
+import { PROGRAM_ID } from "../programId"
+
+export interface SetCollectionMaturityDateArgs {
+  params: types.SetCollectionMaturityDateParamsFields
+}
+
+export interface SetCollectionMaturityDateAccounts {
+  bondAdmin: PublicKey
+  admin: PublicKey
+  collection: PublicKey
+}
+
+export const layout = borsh.struct([
+  types.SetCollectionMaturityDateParams.layout("params"),
+])
+
+export function setCollectionMaturityDate(
+  args: SetCollectionMaturityDateArgs,
+  accounts: SetCollectionMaturityDateAccounts,
+  programId: PublicKey = PROGRAM_ID
+) {
+  const keys: Array<AccountMeta> = [
+    { pubkey: accounts.bondAdmin, isSigner: true, isWritable: true },
+    { pubkey: accounts.admin, isSigner: false, isWritable: false },
+    { pubkey: accounts.collection, isSigner: false, isWritable: true },
+  ]
+  const identifier = Buffer.from([92, 140, 38, 101, 33, 45, 4, 164])
+  const buffer = Buffer.alloc(1000)
+  const len = layout.encode(
+    {
+      params: types.SetCollectionMaturityDateParams.toEncodable(args.params),
+    },
+    buffer
+  )
+  const data = Buffer.concat([identifier, buffer]).slice(0, 8 + len)
+  const ix = new TransactionInstruction({ keys, programId, data })
+  return ix
+}
