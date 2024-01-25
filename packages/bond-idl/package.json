@@ -1,6 +1,6 @@
 {
   "name": "bond-idl",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "The idl to the bond program",
   "main": "index.js",
   "scripts": {
@@ -23,7 +23,5 @@
   "bugs": {
     "url": "https://github.com/etherfuse/etherfuse-common/issues"
   },
-  "homepage": "https://github.com/etherfuse/etherfuse-common#readme",
-  "devDependencies": {},
-  "dependencies": {}
+  "homepage": "https://github.com/etherfuse/etherfuse-common#readme"
 }
