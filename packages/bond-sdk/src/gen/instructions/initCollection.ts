@@ -1,43 +1,41 @@
-import { TransactionInstruction, PublicKey, AccountMeta } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars
-import { PROGRAM_ID } from "../programId"
+import { TransactionInstruction, PublicKey, AccountMeta } from '@solana/web3.js'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import BN from 'bn.js'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as borsh from '@coral-xyz/borsh'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as types from '../types'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import { PROGRAM_ID } from '../programId';
 
 export interface InitCollectionArgs {
-  params: types.InitCollectionParamsFields
+  params: types.InitCollectionParamsFields;
 }
 
 export interface InitCollectionAccounts {
   /** The bond admin that is adding the collection */
-  bondAdmin: PublicKey
+  bondAdmin: PublicKey;
   /** The mint that will be used to mint the bonds */
-  mint: PublicKey
-  nftMint: PublicKey
+  mint: PublicKey;
+  nftMint: PublicKey;
   /**
    * The admin pda that we use to validate
    * that the admin exists and is enabled
    * and the seed is derived from the signer
    */
-  admin: PublicKey
+  admin: PublicKey;
   /**
    * The collection that is being created with
    * the mint as part of the seed
    */
-  collection: PublicKey
+  collection: PublicKey;
   /** The form of payment used to mint the bond */
-  paymentMint: PublicKey
+  paymentMint: PublicKey;
   /** The token program since we are passing in mints */
-  tokenProgram: PublicKey
+  tokenProgram: PublicKey;
   /** The associated token program because we have associated token accounts */
-  associatedTokenProgram: PublicKey
+  associatedTokenProgram: PublicKey;
   /** The system program because we are creating accounts */
-  systemProgram: PublicKey
+  systemProgram: PublicKey;
 }
 
-export const layout = borsh.struct([
-  types.InitCollectionParams.layout("params"),
-])
+export const layout = borsh.struct([types.InitCollectionParams.layout('params')]);
 
 export function initCollection(
   args: InitCollectionArgs,
@@ -58,16 +56,16 @@ export function initCollection(
       isWritable: false,
     },
     { pubkey: accounts.systemProgram, isSigner: false, isWritable: false },
-  ]
-  const identifier = Buffer.from([244, 242, 133, 0, 152, 187, 144, 139])
-  const buffer = Buffer.alloc(1000)
+  ];
+  const identifier = Buffer.from([244, 242, 133, 0, 152, 187, 144, 139]);
+  const buffer = Buffer.alloc(1000);
   const len = layout.encode(
     {
       params: types.InitCollectionParams.toEncodable(args.params),
     },
     buffer
-  )
-  const data = Buffer.concat([identifier, buffer]).slice(0, 8 + len)
-  const ix = new TransactionInstruction({ keys, programId, data })
-  return ix
+  );
+  const data = Buffer.concat([identifier, buffer]).slice(0, 8 + len);
+  const ix = new TransactionInstruction({ keys, programId, data });
+  return ix;
 }

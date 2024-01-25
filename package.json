@@ -2,6 +2,7 @@
   "name": "root",
   "private": true,
   "scripts": {
+    "build": "npx lerna run build",
     "format": "prettier --write '{**/*,*}.{js,ts,jsx,tsx}'",
     "format:check": "prettier --check '{**/*,*}.{js,ts,jsx,tsx}'"
   },

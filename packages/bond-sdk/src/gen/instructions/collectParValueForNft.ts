@@ -1,48 +1,46 @@
-import { TransactionInstruction, PublicKey, AccountMeta } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars
-import { PROGRAM_ID } from "../programId"
+import { TransactionInstruction, PublicKey, AccountMeta } from '@solana/web3.js'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import BN from 'bn.js'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as borsh from '@coral-xyz/borsh'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as types from '../types'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import { PROGRAM_ID } from '../programId';
 
 export interface CollectParValueForNftArgs {
-  params: types.CollectParValueForNFTParamsFields
+  params: types.CollectParValueForNFTParamsFields;
 }
 
 export interface CollectParValueForNftAccounts {
   /** The owner of the nft that is collecting par value. */
-  owner: PublicKey
+  owner: PublicKey;
   /** The collection of the bond for checks. */
-  collection: PublicKey
+  collection: PublicKey;
   /** The token account with the nft that proves ownership and how many tokens are in the PDA. */
-  ownerNftTokenAccount: PublicKey
+  ownerNftTokenAccount: PublicKey;
   /** The token account of the payment account that is used to receive par value payment */
-  ownerPaymentTokenAccount: PublicKey
+  ownerPaymentTokenAccount: PublicKey;
   /** The pda bond token account that holds the bond tokens. */
-  pdaBondTokenAccount: PublicKey
+  pdaBondTokenAccount: PublicKey;
   /** The PDA that holds the bonds that collect par value. */
-  nft: PublicKey
+  nft: PublicKey;
   /** The global par value payment token account */
-  parValueTokenAccount: PublicKey
+  parValueTokenAccount: PublicKey;
   /** The global par value PDA account */
-  parValue: PublicKey
+  parValue: PublicKey;
   /** The global interest payment token account */
-  interestPaymentTokenAccount: PublicKey
+  interestPaymentTokenAccount: PublicKey;
   /** The global interest PDA account */
-  interest: PublicKey
+  interest: PublicKey;
   /** The bond mint */
-  bondMint: PublicKey
+  bondMint: PublicKey;
   /** The payment mint */
-  paymentMint: PublicKey
+  paymentMint: PublicKey;
   /** The nft mint */
-  nftMint: PublicKey
-  kyc: PublicKey
-  pass: PublicKey
-  tokenProgram: PublicKey
+  nftMint: PublicKey;
+  kyc: PublicKey;
+  pass: PublicKey;
+  tokenProgram: PublicKey;
 }
 
-export const layout = borsh.struct([
-  types.CollectParValueForNFTParams.layout("params"),
-])
+export const layout = borsh.struct([types.CollectParValueForNFTParams.layout('params')]);
 
 export function collectParValueForNft(
   args: CollectParValueForNftArgs,
@@ -82,16 +80,16 @@ export function collectParValueForNft(
     { pubkey: accounts.kyc, isSigner: false, isWritable: false },
     { pubkey: accounts.pass, isSigner: false, isWritable: false },
     { pubkey: accounts.tokenProgram, isSigner: false, isWritable: false },
-  ]
-  const identifier = Buffer.from([14, 181, 252, 18, 54, 104, 118, 23])
-  const buffer = Buffer.alloc(1000)
+  ];
+  const identifier = Buffer.from([14, 181, 252, 18, 54, 104, 118, 23]);
+  const buffer = Buffer.alloc(1000);
   const len = layout.encode(
     {
       params: types.CollectParValueForNFTParams.toEncodable(args.params),
     },
     buffer
-  )
-  const data = Buffer.concat([identifier, buffer]).slice(0, 8 + len)
-  const ix = new TransactionInstruction({ keys, programId, data })
-  return ix
+  );
+  const data = Buffer.concat([identifier, buffer]).slice(0, 8 + len);
+  const ix = new TransactionInstruction({ keys, programId, data });
+  return ix;
 }

@@ -1,146 +1,146 @@
-import { PublicKey } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as borsh from "@coral-xyz/borsh"
+import { PublicKey } from '@solana/web3.js'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import BN from 'bn.js'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as types from '../types'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as borsh from '@coral-xyz/borsh';
 
 export interface InitCollectionParamsFields {
   /** The description of the bond collection i.e. the type of bond */
-  description: string
+  description: string;
   /** The total mint supply of the collection that we cap at */
-  supply: BN
+  supply: BN;
   /** The date that that collection starts accepting funds */
-  fundingDate: BN
+  fundingDate: BN;
   /** The start date that the bonds start accumulating interest and the mint closes */
-  startDate: BN
+  startDate: BN;
   /** The maturity date of the bond. This is the date that the bond can be redeemed */
-  maturityDate: BN
+  maturityDate: BN;
   /** The usd cost of the bond in the payment mint */
-  paymentUsdCost: BN
+  paymentUsdCost: BN;
   /** The number of decimals in the payment mint */
-  paymentDecimals: number
+  paymentDecimals: number;
   /** The oracle type: pyth, switchboard, etc */
-  oracleParams: types.OracleParamsFields
+  oracleParams: types.OracleParamsFields;
   /** nft access pass collection mint */
-  nftAccessPassCollection: PublicKey
+  nftAccessPassCollection: PublicKey;
   /** token uri */
-  tokenUri: string
+  tokenUri: string;
   /** token name */
-  tokenName: string
+  tokenName: string;
   /** token symbol */
-  tokenSymbol: string
+  tokenSymbol: string;
   /** nft uri */
-  nftUri: string
+  nftUri: string;
   /** nft name */
-  nftName: string
+  nftName: string;
   /** nft symbol */
-  nftSymbol: string
+  nftSymbol: string;
 }
 
 export interface InitCollectionParamsJSON {
   /** The description of the bond collection i.e. the type of bond */
-  description: string
+  description: string;
   /** The total mint supply of the collection that we cap at */
-  supply: string
+  supply: string;
   /** The date that that collection starts accepting funds */
-  fundingDate: string
+  fundingDate: string;
   /** The start date that the bonds start accumulating interest and the mint closes */
-  startDate: string
+  startDate: string;
   /** The maturity date of the bond. This is the date that the bond can be redeemed */
-  maturityDate: string
+  maturityDate: string;
   /** The usd cost of the bond in the payment mint */
-  paymentUsdCost: string
+  paymentUsdCost: string;
   /** The number of decimals in the payment mint */
-  paymentDecimals: number
+  paymentDecimals: number;
   /** The oracle type: pyth, switchboard, etc */
-  oracleParams: types.OracleParamsJSON
+  oracleParams: types.OracleParamsJSON;
   /** nft access pass collection mint */
-  nftAccessPassCollection: string
+  nftAccessPassCollection: string;
   /** token uri */
-  tokenUri: string
+  tokenUri: string;
   /** token name */
-  tokenName: string
+  tokenName: string;
   /** token symbol */
-  tokenSymbol: string
+  tokenSymbol: string;
   /** nft uri */
-  nftUri: string
+  nftUri: string;
   /** nft name */
-  nftName: string
+  nftName: string;
   /** nft symbol */
-  nftSymbol: string
+  nftSymbol: string;
 }
 
 /** The parameters for the init collection instruction */
 export class InitCollectionParams {
   /** The description of the bond collection i.e. the type of bond */
-  readonly description: string
+  readonly description: string;
   /** The total mint supply of the collection that we cap at */
-  readonly supply: BN
+  readonly supply: BN;
   /** The date that that collection starts accepting funds */
-  readonly fundingDate: BN
+  readonly fundingDate: BN;
   /** The start date that the bonds start accumulating interest and the mint closes */
-  readonly startDate: BN
+  readonly startDate: BN;
   /** The maturity date of the bond. This is the date that the bond can be redeemed */
-  readonly maturityDate: BN
+  readonly maturityDate: BN;
   /** The usd cost of the bond in the payment mint */
-  readonly paymentUsdCost: BN
+  readonly paymentUsdCost: BN;
   /** The number of decimals in the payment mint */
-  readonly paymentDecimals: number
+  readonly paymentDecimals: number;
   /** The oracle type: pyth, switchboard, etc */
-  readonly oracleParams: types.OracleParams
+  readonly oracleParams: types.OracleParams;
   /** nft access pass collection mint */
-  readonly nftAccessPassCollection: PublicKey
+  readonly nftAccessPassCollection: PublicKey;
   /** token uri */
-  readonly tokenUri: string
+  readonly tokenUri: string;
   /** token name */
-  readonly tokenName: string
+  readonly tokenName: string;
   /** token symbol */
-  readonly tokenSymbol: string
+  readonly tokenSymbol: string;
   /** nft uri */
-  readonly nftUri: string
+  readonly nftUri: string;
   /** nft name */
-  readonly nftName: string
+  readonly nftName: string;
   /** nft symbol */
-  readonly nftSymbol: string
+  readonly nftSymbol: string;
 
   constructor(fields: InitCollectionParamsFields) {
-    this.description = fields.description
-    this.supply = fields.supply
-    this.fundingDate = fields.fundingDate
-    this.startDate = fields.startDate
-    this.maturityDate = fields.maturityDate
-    this.paymentUsdCost = fields.paymentUsdCost
-    this.paymentDecimals = fields.paymentDecimals
-    this.oracleParams = new types.OracleParams({ ...fields.oracleParams })
-    this.nftAccessPassCollection = fields.nftAccessPassCollection
-    this.tokenUri = fields.tokenUri
-    this.tokenName = fields.tokenName
-    this.tokenSymbol = fields.tokenSymbol
-    this.nftUri = fields.nftUri
-    this.nftName = fields.nftName
-    this.nftSymbol = fields.nftSymbol
+    this.description = fields.description;
+    this.supply = fields.supply;
+    this.fundingDate = fields.fundingDate;
+    this.startDate = fields.startDate;
+    this.maturityDate = fields.maturityDate;
+    this.paymentUsdCost = fields.paymentUsdCost;
+    this.paymentDecimals = fields.paymentDecimals;
+    this.oracleParams = new types.OracleParams({ ...fields.oracleParams });
+    this.nftAccessPassCollection = fields.nftAccessPassCollection;
+    this.tokenUri = fields.tokenUri;
+    this.tokenName = fields.tokenName;
+    this.tokenSymbol = fields.tokenSymbol;
+    this.nftUri = fields.nftUri;
+    this.nftName = fields.nftName;
+    this.nftSymbol = fields.nftSymbol;
   }
 
   static layout(property?: string) {
     return borsh.struct(
       [
-        borsh.str("description"),
-        borsh.u64("supply"),
-        borsh.i64("fundingDate"),
-        borsh.i64("startDate"),
-        borsh.i64("maturityDate"),
-        borsh.u64("paymentUsdCost"),
-        borsh.u8("paymentDecimals"),
-        types.OracleParams.layout("oracleParams"),
-        borsh.publicKey("nftAccessPassCollection"),
-        borsh.str("tokenUri"),
-        borsh.str("tokenName"),
-        borsh.str("tokenSymbol"),
-        borsh.str("nftUri"),
-        borsh.str("nftName"),
-        borsh.str("nftSymbol"),
+        borsh.str('description'),
+        borsh.u64('supply'),
+        borsh.i64('fundingDate'),
+        borsh.i64('startDate'),
+        borsh.i64('maturityDate'),
+        borsh.u64('paymentUsdCost'),
+        borsh.u8('paymentDecimals'),
+        types.OracleParams.layout('oracleParams'),
+        borsh.publicKey('nftAccessPassCollection'),
+        borsh.str('tokenUri'),
+        borsh.str('tokenName'),
+        borsh.str('tokenSymbol'),
+        borsh.str('nftUri'),
+        borsh.str('nftName'),
+        borsh.str('nftSymbol'),
       ],
       property
-    )
+    );
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -161,7 +161,7 @@ export class InitCollectionParams {
       nftUri: obj.nftUri,
       nftName: obj.nftName,
       nftSymbol: obj.nftSymbol,
-    })
+    });
   }
 
   static toEncodable(fields: InitCollectionParamsFields) {
@@ -181,7 +181,7 @@ export class InitCollectionParams {
       nftUri: fields.nftUri,
       nftName: fields.nftName,
       nftSymbol: fields.nftSymbol,
-    }
+    };
   }
 
   toJSON(): InitCollectionParamsJSON {
@@ -201,7 +201,7 @@ export class InitCollectionParams {
       nftUri: this.nftUri,
       nftName: this.nftName,
       nftSymbol: this.nftSymbol,
-    }
+    };
   }
 
   static fromJSON(obj: InitCollectionParamsJSON): InitCollectionParams {
@@ -221,10 +221,10 @@ export class InitCollectionParams {
       nftUri: obj.nftUri,
       nftName: obj.nftName,
       nftSymbol: obj.nftSymbol,
-    })
+    });
   }
 
   toEncodable() {
-    return InitCollectionParams.toEncodable(this)
+    return InitCollectionParams.toEncodable(this);
   }
 }

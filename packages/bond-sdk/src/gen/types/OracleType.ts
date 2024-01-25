@@ -1,118 +1,114 @@
-import { PublicKey } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as borsh from "@coral-xyz/borsh"
+import { PublicKey } from '@solana/web3.js'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import BN from 'bn.js'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as types from '../types'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as borsh from '@coral-xyz/borsh';
 
 export interface NoneJSON {
-  kind: "None"
+  kind: 'None';
 }
 
 export class None {
-  static readonly discriminator = 0
-  static readonly kind = "None"
-  readonly discriminator = 0
-  readonly kind = "None"
+  static readonly discriminator = 0;
+  static readonly kind = 'None';
+  readonly discriminator = 0;
+  readonly kind = 'None';
 
   toJSON(): NoneJSON {
     return {
-      kind: "None",
-    }
+      kind: 'None',
+    };
   }
 
   toEncodable() {
     return {
       None: {},
-    }
+    };
   }
 }
 
 export interface TestJSON {
-  kind: "Test"
+  kind: 'Test';
 }
 
 export class Test {
-  static readonly discriminator = 1
-  static readonly kind = "Test"
-  readonly discriminator = 1
-  readonly kind = "Test"
+  static readonly discriminator = 1;
+  static readonly kind = 'Test';
+  readonly discriminator = 1;
+  readonly kind = 'Test';
 
   toJSON(): TestJSON {
     return {
-      kind: "Test",
-    }
+      kind: 'Test',
+    };
   }
 
   toEncodable() {
     return {
       Test: {},
-    }
+    };
   }
 }
 
 export interface PythJSON {
-  kind: "Pyth"
+  kind: 'Pyth';
 }
 
 export class Pyth {
-  static readonly discriminator = 2
-  static readonly kind = "Pyth"
-  readonly discriminator = 2
-  readonly kind = "Pyth"
+  static readonly discriminator = 2;
+  static readonly kind = 'Pyth';
+  readonly discriminator = 2;
+  readonly kind = 'Pyth';
 
   toJSON(): PythJSON {
     return {
-      kind: "Pyth",
-    }
+      kind: 'Pyth',
+    };
   }
 
   toEncodable() {
     return {
       Pyth: {},
-    }
+    };
   }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function fromDecoded(obj: any): types.OracleTypeKind {
-  if (typeof obj !== "object") {
-    throw new Error("Invalid enum object")
+  if (typeof obj !== 'object') {
+    throw new Error('Invalid enum object');
   }
 
-  if ("None" in obj) {
-    return new None()
+  if ('None' in obj) {
+    return new None();
   }
-  if ("Test" in obj) {
-    return new Test()
+  if ('Test' in obj) {
+    return new Test();
   }
-  if ("Pyth" in obj) {
-    return new Pyth()
+  if ('Pyth' in obj) {
+    return new Pyth();
   }
 
-  throw new Error("Invalid enum object")
+  throw new Error('Invalid enum object');
 }
 
 export function fromJSON(obj: types.OracleTypeJSON): types.OracleTypeKind {
   switch (obj.kind) {
-    case "None": {
-      return new None()
+    case 'None': {
+      return new None();
     }
-    case "Test": {
-      return new Test()
+    case 'Test': {
+      return new Test();
     }
-    case "Pyth": {
-      return new Pyth()
+    case 'Pyth': {
+      return new Pyth();
     }
   }
 }
 
 export function layout(property?: string) {
-  const ret = borsh.rustEnum([
-    borsh.struct([], "None"),
-    borsh.struct([], "Test"),
-    borsh.struct([], "Pyth"),
-  ])
+  const ret = borsh.rustEnum([borsh.struct([], 'None'), borsh.struct([], 'Test'), borsh.struct([], 'Pyth')]);
   if (property !== undefined) {
-    return ret.replicate(property)
+    return ret.replicate(property);
   }
-  return ret
+  return ret;
 }

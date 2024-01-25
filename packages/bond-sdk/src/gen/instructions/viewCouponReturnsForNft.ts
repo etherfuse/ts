@@ -1,35 +1,33 @@
-import { TransactionInstruction, PublicKey, AccountMeta } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars
-import { PROGRAM_ID } from "../programId"
+import { TransactionInstruction, PublicKey, AccountMeta } from '@solana/web3.js'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import BN from 'bn.js'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as borsh from '@coral-xyz/borsh'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as types from '../types'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import { PROGRAM_ID } from '../programId';
 
 export interface ViewCouponReturnsForNftArgs {
-  params: types.ViewCouponReturnsForNftParamsFields
+  params: types.ViewCouponReturnsForNftParamsFields;
 }
 
 export interface ViewCouponReturnsForNftAccounts {
   /** The collection of the bond for checks. */
-  collection: PublicKey
+  collection: PublicKey;
   /** The pda bond token account that holds the bond tokens. */
-  pdaBondTokenAccount: PublicKey
+  pdaBondTokenAccount: PublicKey;
   /** The PDA that holds the bonds that collect interest. */
-  nft: PublicKey
+  nft: PublicKey;
   /** The global interest payment token account */
-  interestPaymentTokenAccount: PublicKey
+  interestPaymentTokenAccount: PublicKey;
   /** The global interest PDA account */
-  interest: PublicKey
+  interest: PublicKey;
   /** The bond mint */
-  bondMint: PublicKey
+  bondMint: PublicKey;
   /** The payment mint */
-  paymentMint: PublicKey
+  paymentMint: PublicKey;
   /** The nft mint */
-  nftMint: PublicKey
+  nftMint: PublicKey;
 }
 
-export const layout = borsh.struct([
-  types.ViewCouponReturnsForNftParams.layout("params"),
-])
+export const layout = borsh.struct([types.ViewCouponReturnsForNftParams.layout('params')]);
 
 export function viewCouponReturnsForNft(
   args: ViewCouponReturnsForNftArgs,
@@ -53,16 +51,16 @@ export function viewCouponReturnsForNft(
     { pubkey: accounts.bondMint, isSigner: false, isWritable: false },
     { pubkey: accounts.paymentMint, isSigner: false, isWritable: false },
     { pubkey: accounts.nftMint, isSigner: false, isWritable: false },
-  ]
-  const identifier = Buffer.from([8, 203, 28, 78, 89, 20, 184, 41])
-  const buffer = Buffer.alloc(1000)
+  ];
+  const identifier = Buffer.from([8, 203, 28, 78, 89, 20, 184, 41]);
+  const buffer = Buffer.alloc(1000);
   const len = layout.encode(
     {
       params: types.ViewCouponReturnsForNftParams.toEncodable(args.params),
     },
     buffer
-  )
-  const data = Buffer.concat([identifier, buffer]).slice(0, 8 + len)
-  const ix = new TransactionInstruction({ keys, programId, data })
-  return ix
+  );
+  const data = Buffer.concat([identifier, buffer]).slice(0, 8 + len);
+  const ix = new TransactionInstruction({ keys, programId, data });
+  return ix;
 }

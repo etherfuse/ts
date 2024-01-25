@@ -1,41 +1,39 @@
-import { TransactionInstruction, PublicKey, AccountMeta } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars
-import { PROGRAM_ID } from "../programId"
+import { TransactionInstruction, PublicKey, AccountMeta } from '@solana/web3.js'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import BN from 'bn.js'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as borsh from '@coral-xyz/borsh'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as types from '../types'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import { PROGRAM_ID } from '../programId';
 
 export interface CollectParValueArgs {
-  params: types.CollectParValueParamsFields
+  params: types.CollectParValueParamsFields;
 }
 
 export interface CollectParValueAccounts {
-  owner: PublicKey
+  owner: PublicKey;
   /** The token account of the bond mint */
-  ownerBondTokenAccount: PublicKey
+  ownerBondTokenAccount: PublicKey;
   /** The token account of the payment mint */
-  ownerPaymentTokenAccount: PublicKey
+  ownerPaymentTokenAccount: PublicKey;
   /** The collection of the bond */
-  collection: PublicKey
+  collection: PublicKey;
   /** The bond mint */
-  bondMint: PublicKey
+  bondMint: PublicKey;
   /** The global par value payment token account */
-  parValueTokenAccount: PublicKey
+  parValueTokenAccount: PublicKey;
   /** The global par value PDA account */
-  parValue: PublicKey
+  parValue: PublicKey;
   /** The global interest payment token account */
-  interestPaymentTokenAccount: PublicKey
+  interestPaymentTokenAccount: PublicKey;
   /** The global interest PDA account */
-  interest: PublicKey
+  interest: PublicKey;
   /** The payment mint that was used to purchase the bond */
-  paymentMint: PublicKey
-  kyc: PublicKey
-  pass: PublicKey
-  tokenProgram: PublicKey
+  paymentMint: PublicKey;
+  kyc: PublicKey;
+  pass: PublicKey;
+  tokenProgram: PublicKey;
 }
 
-export const layout = borsh.struct([
-  types.CollectParValueParams.layout("params"),
-])
+export const layout = borsh.struct([types.CollectParValueParams.layout('params')]);
 
 export function collectParValue(
   args: CollectParValueArgs,
@@ -72,16 +70,16 @@ export function collectParValue(
     { pubkey: accounts.kyc, isSigner: false, isWritable: false },
     { pubkey: accounts.pass, isSigner: false, isWritable: false },
     { pubkey: accounts.tokenProgram, isSigner: false, isWritable: false },
-  ]
-  const identifier = Buffer.from([47, 78, 17, 130, 223, 53, 8, 16])
-  const buffer = Buffer.alloc(1000)
+  ];
+  const identifier = Buffer.from([47, 78, 17, 130, 223, 53, 8, 16]);
+  const buffer = Buffer.alloc(1000);
   const len = layout.encode(
     {
       params: types.CollectParValueParams.toEncodable(args.params),
     },
     buffer
-  )
-  const data = Buffer.concat([identifier, buffer]).slice(0, 8 + len)
-  const ix = new TransactionInstruction({ keys, programId, data })
-  return ix
+  );
+  const data = Buffer.concat([identifier, buffer]).slice(0, 8 + len);
+  const ix = new TransactionInstruction({ keys, programId, data });
+  return ix;
 }

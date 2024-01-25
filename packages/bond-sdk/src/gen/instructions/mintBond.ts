@@ -1,49 +1,45 @@
-import { TransactionInstruction, PublicKey, AccountMeta } from "@solana/web3.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import BN from "bn.js" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as borsh from "@coral-xyz/borsh" // eslint-disable-line @typescript-eslint/no-unused-vars
-import * as types from "../types" // eslint-disable-line @typescript-eslint/no-unused-vars
-import { PROGRAM_ID } from "../programId"
+import { TransactionInstruction, PublicKey, AccountMeta } from '@solana/web3.js'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import BN from 'bn.js'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as borsh from '@coral-xyz/borsh'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import * as types from '../types'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import { PROGRAM_ID } from '../programId';
 
 export interface MintBondArgs {
-  params: types.MintBondParamsFields
+  params: types.MintBondParamsFields;
 }
 
 export interface MintBondAccounts {
   /** The soon to be owner of the bond. */
-  owner: PublicKey
+  owner: PublicKey;
   /** The payment account pda which has an ata which receives the payment for the bond */
-  paymentAccount: PublicKey
+  paymentAccount: PublicKey;
   /** The payment token account that is used to receive payment for the bond */
-  paymentTokenAccount: PublicKey
+  paymentTokenAccount: PublicKey;
   /** The owner token account that is used to pay for the bond */
-  ownerTokenAccount: PublicKey
+  ownerTokenAccount: PublicKey;
   /** The mint pubkey of the bond that is set in the collection */
-  mint: PublicKey
+  mint: PublicKey;
   /** The mint of the token that is used to pay for the bond */
-  paymentMint: PublicKey
+  paymentMint: PublicKey;
   /** The price feed from the oracle that is used to calculate the payment amount */
-  paymentPriceFeed: PublicKey
+  paymentPriceFeed: PublicKey;
   /** The bond token account for the user that is minting the bond */
-  bondTokenAccount: PublicKey
+  bondTokenAccount: PublicKey;
   /** The collection that the bond is being minted from */
-  collection: PublicKey
-  kyc: PublicKey
-  pass: PublicKey
+  collection: PublicKey;
+  kyc: PublicKey;
+  pass: PublicKey;
   /** The token program since we are minting a token */
-  tokenProgram: PublicKey
+  tokenProgram: PublicKey;
   /** The associated token program since we are potentially creating a new associated token account */
-  associatedTokenProgram: PublicKey
+  associatedTokenProgram: PublicKey;
   /** The system program since we are creating accounts */
-  systemProgram: PublicKey
+  systemProgram: PublicKey;
 }
 
-export const layout = borsh.struct([types.MintBondParams.layout("params")])
+export const layout = borsh.struct([types.MintBondParams.layout('params')]);
 
-export function mintBond(
-  args: MintBondArgs,
-  accounts: MintBondAccounts,
-  programId: PublicKey = PROGRAM_ID
-) {
+export function mintBond(args: MintBondArgs, accounts: MintBondAccounts, programId: PublicKey = PROGRAM_ID) {
   const keys: Array<AccountMeta> = [
     { pubkey: accounts.owner, isSigner: true, isWritable: true },
     { pubkey: accounts.paymentAccount, isSigner: false, isWritable: true },
@@ -63,16 +59,16 @@ export function mintBond(
       isWritable: false,
     },
     { pubkey: accounts.systemProgram, isSigner: false, isWritable: false },
-  ]
-  const identifier = Buffer.from([234, 94, 85, 225, 167, 102, 169, 32])
-  const buffer = Buffer.alloc(1000)
+  ];
+  const identifier = Buffer.from([234, 94, 85, 225, 167, 102, 169, 32]);
+  const buffer = Buffer.alloc(1000);
   const len = layout.encode(
     {
       params: types.MintBondParams.toEncodable(args.params),
     },
     buffer
-  )
-  const data = Buffer.concat([identifier, buffer]).slice(0, 8 + len)
-  const ix = new TransactionInstruction({ keys, programId, data })
-  return ix
+  );
+  const data = Buffer.concat([identifier, buffer]).slice(0, 8 + len);
+  const ix = new TransactionInstruction({ keys, programId, data });
+  return ix;
 }
