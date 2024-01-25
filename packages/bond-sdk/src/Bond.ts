@@ -8,13 +8,13 @@ export class Bond {
   private _bondProgram: Program;
 
   constructor(connection: Connection, wallet: Wallet) {
-      this._connection = connection;
-      this._provider = new AnchorProvider(connection, wallet, {
-          commitment: connection.commitment,
-      });
-      this._bondProgram = new Program(BOND_IDL as Idl, BOND_PROGRAM_ID, this._provider);
+    this._connection = connection;
+    this._provider = new AnchorProvider(connection, wallet, {
+      commitment: connection.commitment,
+    });
+    this._bondProgram = new Program(BOND_IDL as Idl, BOND_PROGRAM_ID, this._provider);
+  }
 }
-
 //The Bond class allows the user to create a Bond object
 //that can interact with the Bond program directly
 
