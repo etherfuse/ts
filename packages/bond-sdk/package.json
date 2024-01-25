@@ -1,7 +1,7 @@
 {
   "name": "bond-sdk",
-  "version": "1.0.0",
-  "description": "An sdk to the etherfuse bond program",
+  "version": "0.0.1",
+  "description": "The sdk to the etherfuse bond program",
   "main": "index.js",
   "scripts": {
     "build": "tsc",
@@ -29,7 +29,6 @@
     "@coral-xyz/anchor": "^0.29.0",
     "@solana/web3.js": "^1.87.6",
     "@bond-idl/bond": "^1.0.0"
-
   },
   "peerDependencies": {
     "@solana/web3.js": "^1.78.4",

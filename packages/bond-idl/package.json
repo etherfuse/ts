@@ -1,7 +1,7 @@
 {
   "name": "bond-idl",
-  "version": "1.0.0",
-  "description": "the idl to the bond program",
+  "version": "0.0.1",
+  "description": "The idl to the bond program",
   "main": "index.js",
   "scripts": {
     "build": "tsc",
