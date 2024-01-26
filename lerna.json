@@ -1,14 +1,10 @@
 {
   "$schema": "node_modules/lerna/schemas/lerna-schema.json",
-  "version": "0.0.9",
-  "packages": [
-    "packages/*"
-  ],
+  "version": "0.0.10",
+  "packages": ["packages/*"],
   "command": {
     "publish": {
-      "ignoreChanges": [
-        "tests/**"
-      ]
+      "ignoreChanges": ["tests/**"]
     }
   }
 }

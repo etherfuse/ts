@@ -1,6 +1,6 @@
 {
   "name": "@etherfuse/bond-sdk",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "The sdk to the etherfuse bond program",
   "main": "index.js",
   "scripts": {
