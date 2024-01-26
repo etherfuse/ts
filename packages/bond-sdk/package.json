@@ -1,6 +1,6 @@
 {
   "name": "bond-sdk",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "The sdk to the etherfuse bond program",
   "main": "index.js",
   "scripts": {
@@ -26,8 +26,8 @@
   "homepage": "https://github.com/etherfuse/etherfuse-common#readme",
   "dependencies": {
     "@coral-xyz/anchor": "^0.29.0",
-    "@etherfuse/utils": "^1.0.0",
-    "@etherfuse/bond-idl": "^1.0.0",
+    "@etherfuse/bond-idl": "^0.0.6",
+    "@etherfuse/utils": "^0.0.6",
     "@solana/web3.js": "^1.78.4"
   },
   "peerDependencies": {
