@@ -19,6 +19,12 @@
   "references": [
     {
       "path": "./packages/utils"
+    },
+    {
+      "path": "./packages/bond-idl"
+    },
+    {
+      "path": "./packages/bond-sdk"
     }
   ]
 }

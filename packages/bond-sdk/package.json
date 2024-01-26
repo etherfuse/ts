@@ -27,6 +27,7 @@
   "dependencies": {
     "@coral-xyz/anchor": "^0.29.0",
     "@etherfuse/utils": "^1.0.0",
+    "@etherfuse/bond-idl": "^1.0.0",
     "@solana/web3.js": "^1.78.4"
   },
   "peerDependencies": {

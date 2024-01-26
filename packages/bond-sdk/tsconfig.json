@@ -6,10 +6,13 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@etherfuse/utils": ["../utils/src"]
+      "@etherfuse/utils": ["../utils/src"],
+      "@etherfuse/bond-idl": ["../bond-idl/src"]
     }
   },
-  "include": ["src/**/*"],
+  "include": [
+    "src/**/*",
+  ],
   "exclude": [
     "dist",
     "tests"
