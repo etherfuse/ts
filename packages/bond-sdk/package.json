@@ -25,9 +25,9 @@
   },
   "homepage": "https://github.com/etherfuse/etherfuse-common#readme",
   "dependencies": {
-    "@bond-idl/bond": "^0.0.1",
     "@coral-xyz/anchor": "^0.29.0",
-    "@solana/web3.js": "^1.87.6"
+    "@etherfuse/utils": "^1.0.0",
+    "@solana/web3.js": "^1.78.4"
   },
   "peerDependencies": {
     "@solana/web3.js": "^1.78.4",

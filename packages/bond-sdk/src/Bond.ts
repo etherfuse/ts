@@ -1,6 +1,7 @@
 import { AnchorProvider, Program, Provider, Wallet } from '@coral-xyz/anchor';
 import { Connection } from '@solana/web3.js';
-//import { BOND_IDL } from '@bond-idl/bond';
+import { isEven } from '@etherfuse/utils';
+// import { BOND_IDL } from '@etherfuse/bond-idl';
 
 export class Bond {
   private readonly _connection: Connection;

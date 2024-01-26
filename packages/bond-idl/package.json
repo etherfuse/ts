@@ -1,6 +1,6 @@
 {
-  "name": "bond-idl",
-  "version": "0.0.2",
+  "name": "@etheruse/bond-idl",
+  "version": "0.0.5",
   "description": "The idl to the bond program",
   "main": "index.js",
   "scripts": {
