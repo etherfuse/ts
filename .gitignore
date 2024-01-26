@@ -3,3 +3,4 @@ dist
 *.log
 .nx
 .npmrc
+.DS_Store
