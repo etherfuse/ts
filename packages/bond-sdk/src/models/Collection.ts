@@ -29,3 +29,5 @@ export type Collection = {
   nftName: string;
   nftSymbol: string;
 };
+
+export default Collection;
