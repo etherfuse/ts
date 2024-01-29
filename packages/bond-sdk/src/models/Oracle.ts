@@ -18,3 +18,5 @@ export type OracleParams = {
   maxPriceError: Decimal;
   maxPriceAgeSec: Decimal;
 };
+
+export default OracleParams;

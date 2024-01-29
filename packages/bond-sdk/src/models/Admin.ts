@@ -5,3 +5,5 @@ export type Admin = {
   isEnabled: boolean;
   kycAuthority: PublicKey;
 };
+
+export default Admin;

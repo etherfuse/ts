@@ -6,3 +6,5 @@ export type InterestAccount = {
   runningTotal: Array<Decimal>;
   counter: Decimal;
 };
+
+export default InterestAccount;

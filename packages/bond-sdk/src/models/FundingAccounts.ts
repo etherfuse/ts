@@ -5,3 +5,5 @@ export type FundingAccounts = {
   interestPaymentTokenAccount: PublicKey;
   parValuePaymentTokenAccount: PublicKey;
 };
+
+export default FundingAccounts;

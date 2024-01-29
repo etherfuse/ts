@@ -1,4 +1,6 @@
 export * from './Admin';
+export * from './AssetInfo';
+export * from './AssetProof';
 export * from './Collection';
 export * from './FundingAccounts';
 export * from './GlobalPassConfig';
@@ -9,3 +11,4 @@ export * from './Oracle';
 export * from './ParValueAccount';
 export * from './Pass';
 export * from './PaymentAccount';
+export * from './TokenMetadata';

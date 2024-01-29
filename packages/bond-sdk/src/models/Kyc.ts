@@ -4,3 +4,5 @@ export type Kyc = {
   wallet: PublicKey;
   is_disabled: boolean;
 };
+
+export default Kyc;

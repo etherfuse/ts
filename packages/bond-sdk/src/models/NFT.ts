@@ -4,3 +4,5 @@ export type NFT = {
   mint: PublicKey;
   counter: number;
 };
+
+export default NFT;

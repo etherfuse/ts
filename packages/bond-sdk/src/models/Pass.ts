@@ -4,3 +4,5 @@ export type Pass = {
   wallet: PublicKey;
   isDisabled: boolean;
 };
+
+export default Pass;

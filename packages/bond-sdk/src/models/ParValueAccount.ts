@@ -5,3 +5,5 @@ export type ParValueAccount = {
   authority: PublicKey;
   runningTotal: Array<Decimal>;
 };
+
+export default ParValueAccount;
