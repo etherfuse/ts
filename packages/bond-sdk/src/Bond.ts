@@ -1,5 +1,13 @@
 import { AnchorProvider, Program, Provider, Wallet, Idl, BN } from '@coral-xyz/anchor';
-import { Connection, PublicKey, AccountMeta, Transaction } from '@solana/web3.js';
+import {
+  Connection,
+  PublicKey,
+  AccountMeta,
+  Transaction,
+  SystemProgram,
+  Keypair,
+  TransactionInstruction,
+} from '@solana/web3.js';
 import { BOND_IDL } from '@etherfuse/bond-idl';
 import { Collection, AssetInfo, AssetProof, TokenMetadata } from './models';
 import {
@@ -7,7 +15,10 @@ import {
   SPL_NOOP_PROGRAM_ID,
   ConcurrentMerkleTreeAccount,
 } from '@solana/spl-account-compression';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { PROGRAM_ID as BUBBLEGUM_PROGRAM_ID } from '@metaplex-foundation/mpl-bubblegum';
+import Decimal from 'decimal.js';
+import { PROGRAM_ID as TOKEN_METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata';
 
 export class Bond {
   private readonly _connection: Connection;
@@ -39,15 +50,180 @@ export class Bond {
     return collection;
   }
 
-  async mintBond(): Promise<void> {}
+  async mintBond(
+    amount: Decimal,
+    wallet: PublicKey,
+    mint: PublicKey,
+    paymentMint: PublicKey,
+    paymentPriceFeed: PublicKey,
+    paymentDecimals: number
+  ): Promise<Transaction> {
+    let userPaymentTokenAccount = await getAssociatedTokenAddress(paymentMint, wallet);
+    let userBondTokenAccount = await getAssociatedTokenAddress(mint, wallet);
+    let paymentTokenAccount = await getAssociatedTokenAddress(paymentMint, wallet);
+    let tokenAmount = this.UiToTokenAmount(amount, paymentDecimals);
+    let methodBuilder = this._bondProgram.methods.mintBond(tokenAmount).accounts({
+      owner: wallet,
+      collection: this.getCollectionAddress(mint),
+      mint: mint,
+      bondTokenAccount: userBondTokenAccount,
+      paymentAccount: this.getPaymentAccountAddress(paymentMint),
+      paymentTokenAccount: paymentTokenAccount,
+      paymentPriceFeed: paymentPriceFeed,
+      ownerTokenAccount: userPaymentTokenAccount,
+      paymentMint: paymentMint,
+      kyc: this.getKycAddress(wallet),
+      pass: this.getAccessPassAddress(wallet),
+      tokenProgram: TOKEN_PROGRAM_ID,
+      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    });
+    return await methodBuilder.transaction();
+  }
 
-  async exchangeTokensForNFT(): Promise<void> {}
+  async exchangeTokensForNFT(
+    amount: Decimal,
+    wallet: PublicKey,
+    mint: PublicKey,
+    collectionNftMint: PublicKey,
+    paymentDecimals: number
+  ): Promise<Transaction> {
+    let userBondTokenAccount = await getAssociatedTokenAddress(mint, wallet);
+    let nftMint = Keypair.generate();
+    let nftAddress = this.getNftAddress(nftMint.publicKey);
+    let nftBondTokenAccount = await getAssociatedTokenAddress(mint, nftAddress, true);
+    let ownerNftTokenAccount = await getAssociatedTokenAddress(nftMint.publicKey, wallet);
+    let setNftInstruction = await this._bondProgram.methods
+      .exchangeTokensForNFT()
+      .accounts({
+        owner: wallet,
+        collection: this.getCollectionAddress(mint),
+        nft: nftAddress,
+        ownerNftTokenAccount: ownerNftTokenAccount,
+        nftMint: nftMint.publicKey,
+        collectionNftMint: collectionNftMint,
+        kyc: this.getKycAddress(wallet),
+        metadata: this.getMetadataAddress(nftMint.publicKey),
+        masterEdition: this.getMasterEditionAddress(nftMint.publicKey),
+        collectionMetadata: this.getMetadataAddress(collectionNftMint),
+        collectionMasterEdition: this.getMasterEditionAddress(collectionNftMint),
+        tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        SystemProgram: SystemProgram.programId,
+      })
+      .instruction();
+    let postInstructions: TransactionInstruction[] = [];
+    postInstructions.push(setNftInstruction);
+    let tokenAmount = this.UiToTokenAmount(amount, paymentDecimals);
+    let methodBuilder = this._bondProgram.methods
+      .exchangeTokensForNFT(tokenAmount)
+      .accounts({
+        owner: wallet,
+        collection: this.getCollectionAddress(mint),
+        nft: nftAddress,
+        bondMint: mint,
+        pdaBondTokenAccount: nftBondTokenAccount,
+        ownerNftTokenAccount: ownerNftTokenAccount,
+        ownerBondTokenAccount: userBondTokenAccount,
+        kyc: this.getKycAddress(wallet),
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .postInstructions(postInstructions);
+    return await methodBuilder.transaction();
+  }
 
-  async collectInterest(): Promise<void> {}
+  async collectInterest(
+    wallet: PublicKey,
+    mint: PublicKey,
+    nftMint: PublicKey,
+    paymentMint: PublicKey
+  ): Promise<Transaction> {
+    let userNftTokenAccount = await getAssociatedTokenAddress(nftMint, wallet);
+    let userPaymentTokenAccount = await getAssociatedTokenAddress(paymentMint, wallet);
+    let nftAddress = this.getNftAddress(nftMint);
+    let nftBondTokenAccount = await getAssociatedTokenAddress(mint, nftAddress, true);
+    let methodBuilder = this._bondProgram.methods.collectInterest().accounts({
+      owner: wallet,
+      collection: this.getCollectionAddress(mint),
+      ownerNftTokenAccount: userNftTokenAccount,
+      ownerPaymentTokenAccount: userPaymentTokenAccount,
+      pdaBondTokenAccount: nftBondTokenAccount,
+      nft: nftAddress,
+      nftMint: nftMint,
+      interest: this.getInterestAccountAddress(mint),
+      interestPaymentTokenAccount: await this.getInterestAccountTokenAccountAddress(mint, paymentMint),
+      bondMint: mint,
+      paymentMint: paymentMint,
+      kyc: this.getKycAddress(wallet),
+      pass: this.getAccessPassAddress(wallet),
+      tokenProgram: TOKEN_PROGRAM_ID,
+    });
+    return await methodBuilder.transaction();
+  }
 
-  async collectParValue(): Promise<void> {}
+  async collectParValue(
+    amount: Decimal,
+    wallet: PublicKey,
+    mint: PublicKey,
+    paymentMint: PublicKey,
+    paymentDecimals: number
+  ): Promise<Transaction> {
+    let userPaymentTokenAccount = await getAssociatedTokenAddress(paymentMint, wallet);
+    let userBondtokenAccount = await getAssociatedTokenAddress(mint, wallet);
+    let tokenAmount = this.UiToTokenAmount(amount, paymentDecimals);
+    let methodBuilder = this._bondProgram.methods
+      .collectParValue(tokenAmount)
+      .accounts({})
+      .accounts({
+        owner: wallet,
+        ownerPaymentTokenAccount: userPaymentTokenAccount,
+        collection: this.getCollectionAddress(mint),
+        bondMint: mint,
+        ownerBondTokenAccount: userBondtokenAccount,
+        parValue: this.getParValueAccountAddress(mint),
+        parValueTokenAccount: await this.getParValueAccountTokenAccountAddress(mint, paymentMint),
+        interest: this.getInterestAccountAddress(mint),
+        interestPaymentTokenAccount: await this.getInterestAccountTokenAccountAddress(mint, paymentMint),
+        paymentMint: paymentMint,
+        kyc: this.getKycAddress(wallet),
+        pass: this.getAccessPassAddress(wallet),
+        tokenProgram: TOKEN_PROGRAM_ID,
+      });
+    return await methodBuilder.transaction();
+  }
 
-  async collectParValueForNft(): Promise<void> {}
+  async collectParValueForNft(
+    wallet: PublicKey,
+    mint: PublicKey,
+    nftMint: PublicKey,
+    paymentMint: PublicKey
+  ): Promise<Transaction> {
+    let userNftTokenAccount = await getAssociatedTokenAddress(nftMint, wallet);
+    let nftAddress = this.getNftAddress(nftMint);
+    let nftPdaBondTokenAccount = await getAssociatedTokenAddress(mint, nftAddress, true);
+    let userPaymentTokenAccount = await getAssociatedTokenAddress(paymentMint, wallet);
+    let methodBuilder = this._bondProgram.methods.collectParValueForNft().accounts({
+      owner: wallet,
+      collection: this.getCollectionAddress(mint),
+      ownerNftTokenAccount: userNftTokenAccount,
+      ownerPaymentTokenAccount: userPaymentTokenAccount,
+      pdaBondTokenAccount: nftPdaBondTokenAccount,
+      nft: nftAddress,
+      nftMint: nftMint,
+      parValue: this.getParValueAccountAddress(mint),
+      parValueTokenAccount: await this.getParValueAccountTokenAccountAddress(mint, paymentMint),
+      interest: this.getInterestAccountAddress(mint),
+      interestPaymentTokenAccount: await this.getInterestAccountTokenAccountAddress(mint, paymentMint),
+      bondMint: mint,
+      paymentMint: paymentMint,
+      kyc: this.getKycAddress(wallet),
+      pass: this.getAccessPassAddress(wallet),
+      tokenProgram: TOKEN_PROGRAM_ID,
+    });
+    return await methodBuilder.transaction();
+  }
 
   async burnAccessPass(wallet: PublicKey): Promise<Transaction> {
     let assetInfo = await this.getCompressedAssetInfo(wallet);
@@ -132,6 +308,10 @@ export class Bond {
     return await this.getAssetProof(assetInfoId);
   }
 
+  private UiToTokenAmount(amount: Decimal, decimals: number): BN {
+    return new BN(amount.mul(10 ** decimals).toNumber());
+  }
+
   private getKycAddress(wallet: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync([Buffer.from('kyc'), wallet.toBuffer()], this._bondProgramId)[0];
   }
@@ -150,6 +330,44 @@ export class Bond {
 
   private getNftAddress(mint: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync([Buffer.from('nft'), mint.toBuffer()], this._bondProgramId)[0];
+  }
+
+  private getPaymentAccountAddress(mint: PublicKey): PublicKey {
+    return PublicKey.findProgramAddressSync([Buffer.from('payment'), mint.toBuffer()], this._bondProgramId)[0];
+  }
+
+  private async getPaymentAccountTokenAccountAddress(mint: PublicKey, paymentMint: PublicKey): Promise<PublicKey> {
+    return await getAssociatedTokenAddress(paymentMint, this.getPaymentAccountAddress(mint), true);
+  }
+
+  private getInterestAccountAddress(mint: PublicKey): PublicKey {
+    return PublicKey.findProgramAddressSync([Buffer.from('interest'), mint.toBuffer()], this._bondProgramId)[0];
+  }
+
+  private async getInterestAccountTokenAccountAddress(mint: PublicKey, paymentMint: PublicKey): Promise<PublicKey> {
+    return await getAssociatedTokenAddress(paymentMint, this.getInterestAccountAddress(mint), true);
+  }
+
+  private getParValueAccountAddress(mint: PublicKey): PublicKey {
+    return PublicKey.findProgramAddressSync([Buffer.from('par_value'), mint.toBuffer()], this._bondProgramId)[0];
+  }
+
+  private async getParValueAccountTokenAccountAddress(mint: PublicKey, paymentMint: PublicKey): Promise<PublicKey> {
+    return await getAssociatedTokenAddress(paymentMint, this.getParValueAccountAddress(mint), true);
+  }
+
+  private getMetadataAddress(mint: PublicKey): PublicKey {
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from('metadata'), TOKEN_METADATA_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+      TOKEN_METADATA_PROGRAM_ID
+    )[0];
+  }
+
+  private getMasterEditionAddress(mint: PublicKey): PublicKey {
+    return PublicKey.findProgramAddressSync(
+      [Buffer.from('metadata'), TOKEN_METADATA_PROGRAM_ID.toBuffer(), mint.toBuffer(), Buffer.from('edition')],
+      TOKEN_METADATA_PROGRAM_ID
+    )[0];
   }
 
   private async getAssetProof(assetId: string): Promise<AssetProof | null> {
