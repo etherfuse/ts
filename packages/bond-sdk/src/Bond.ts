@@ -60,7 +60,6 @@ export class Bond {
   ): Promise<Transaction> {
     let userPaymentTokenAccount = await getAssociatedTokenAddress(paymentMint, wallet);
     let userBondTokenAccount = await getAssociatedTokenAddress(mint, wallet);
-    let paymentTokenAccount = await getAssociatedTokenAddress(paymentMint, wallet);
     let tokenAmount = this.UiToTokenAmount(amount, paymentDecimals);
     let methodBuilder = this._bondProgram.methods.mintBond(tokenAmount).accounts({
       owner: wallet,
@@ -68,7 +67,7 @@ export class Bond {
       mint: mint,
       bondTokenAccount: userBondTokenAccount,
       paymentAccount: this.getPaymentAccountAddress(paymentMint),
-      paymentTokenAccount: paymentTokenAccount,
+      paymentTokenAccount: await this.getPaymentAccountTokenAccountAddress(mint, paymentMint),
       paymentPriceFeed: paymentPriceFeed,
       ownerTokenAccount: userPaymentTokenAccount,
       paymentMint: paymentMint,
