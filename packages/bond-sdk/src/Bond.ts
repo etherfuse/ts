@@ -86,7 +86,7 @@ export class Bond {
       preInstructions.push(ataIx);
     }
     let methodBuilder = this._bondProgram.methods
-      .mintBond(tokenAmount)
+      .mintBond({ amount: tokenAmount })
       .accounts({
         owner: wallet,
         collection: this.getCollectionAddress(collection.mint),
@@ -121,7 +121,7 @@ export class Bond {
     let nftBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, nftAddress, true);
     let ownerNftTokenAccount = getAssociatedTokenAddressSync(nftMint.publicKey, wallet);
     let setNftInstruction = await this._bondProgram.methods
-      .exchangeTokensForNFT()
+      .setNft({})
       .accounts({
         owner: wallet,
         collection: this.getCollectionAddress(collection.mint),
@@ -143,7 +143,7 @@ export class Bond {
     postInstructions.push(setNftInstruction);
     let tokenAmount = this.UiToTokenAmount(amount, collection.paymentDecimals);
     let methodBuilder = this._bondProgram.methods
-      .exchangeTokensForNFT(tokenAmount)
+      .exchangeTokensForNFT({ amount: tokenAmount })
       .accounts({
         owner: wallet,
         collection: this.getCollectionAddress(collection.mint),
@@ -180,7 +180,7 @@ export class Bond {
       preInstructions.push(ataIx);
     }
     let methodBuilder = this._bondProgram.methods
-      .collectInterest()
+      .collectInterest({})
       .accounts({
         owner: wallet,
         collection: this.getCollectionAddress(collection.mint),
@@ -227,8 +227,7 @@ export class Bond {
       preInstructions.push(ataIx);
     }
     let methodBuilder = this._bondProgram.methods
-      .collectParValue(tokenAmount)
-      .accounts({})
+      .collectParValue({ amount: tokenAmount })
       .accounts({
         owner: wallet,
         ownerPaymentTokenAccount: userPaymentTokenAccount,
@@ -270,7 +269,7 @@ export class Bond {
       preInstructions.push(ataIx);
     }
     let methodBuilder = this._bondProgram.methods
-      .collectParValueForNft()
+      .collectParValueForNft({})
       .accounts({
         owner: wallet,
         collection: this.getCollectionAddress(collection.mint),
