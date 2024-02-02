@@ -20,7 +20,12 @@ import {
   SPL_NOOP_PROGRAM_ID,
   ConcurrentMerkleTreeAccount,
 } from '@solana/spl-account-compression';
-import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import {
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountInstruction,
+  TOKEN_PROGRAM_ID,
+} from '@solana/spl-token';
 import { PROGRAM_ID as BUBBLEGUM_PROGRAM_ID } from '@metaplex-foundation/mpl-bubblegum';
 import Decimal from 'decimal.js';
 import { PROGRAM_ID as TOKEN_METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata';
@@ -73,23 +78,32 @@ export class Bond {
     let wallet = this._provider.publicKey!;
     let userPaymentTokenAccount = getAssociatedTokenAddressSync(collection.paymentMint, wallet);
     let userBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, wallet);
+    let userHasBondTokenAccount = await this.checkIfAccountExists(userBondTokenAccount);
     let tokenAmount = this.UiToTokenAmount(amount, collection.paymentDecimals);
-    let methodBuilder = this._bondProgram.methods.mintBond(tokenAmount).accounts({
-      owner: wallet,
-      collection: this.getCollectionAddress(collection.mint),
-      mint: collection.mint,
-      bondTokenAccount: userBondTokenAccount,
-      paymentAccount: this.getPaymentAccountAddress(collection.paymentMint),
-      paymentTokenAccount: this.getPaymentAccountTokenAccountAddress(collection.mint, collection.paymentMint),
-      paymentPriceFeed: collection.oracleParams.oracleAccount,
-      ownerTokenAccount: userPaymentTokenAccount,
-      paymentMint: collection.paymentMint,
-      kyc: this.getKycAddress(wallet),
-      pass: this.getAccessPassAddress(wallet),
-      tokenProgram: TOKEN_PROGRAM_ID,
-      associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-      systemProgram: SystemProgram.programId,
-    });
+    let preInstructions: TransactionInstruction[] = [];
+    if (!userHasBondTokenAccount) {
+      let ataIx = createAssociatedTokenAccountInstruction(wallet, userBondTokenAccount, wallet, collection.mint);
+      preInstructions.push(ataIx);
+    }
+    let methodBuilder = this._bondProgram.methods
+      .mintBond(tokenAmount)
+      .accounts({
+        owner: wallet,
+        collection: this.getCollectionAddress(collection.mint),
+        mint: collection.mint,
+        bondTokenAccount: userBondTokenAccount,
+        paymentAccount: this.getPaymentAccountAddress(collection.paymentMint),
+        paymentTokenAccount: this.getPaymentAccountTokenAccountAddress(collection.mint, collection.paymentMint),
+        paymentPriceFeed: collection.oracleParams.oracleAccount,
+        ownerTokenAccount: userPaymentTokenAccount,
+        paymentMint: collection.paymentMint,
+        kyc: this.getKycAddress(wallet),
+        pass: this.getAccessPassAddress(wallet),
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .preInstructions(preInstructions);
     return await methodBuilder.transaction();
   }
 
@@ -154,22 +168,39 @@ export class Bond {
     let userPaymentTokenAccount = getAssociatedTokenAddressSync(collection.paymentMint, wallet);
     let nftAddress = this.getNftAddress(collection.nftMint);
     let nftBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, nftAddress, true);
-    let methodBuilder = this._bondProgram.methods.collectInterest().accounts({
-      owner: wallet,
-      collection: this.getCollectionAddress(collection.mint),
-      ownerNftTokenAccount: userNftTokenAccount,
-      ownerPaymentTokenAccount: userPaymentTokenAccount,
-      pdaBondTokenAccount: nftBondTokenAccount,
-      nft: nftAddress,
-      nftMint: collection.nftMint,
-      interest: this.getInterestAccountAddress(collection.mint),
-      interestPaymentTokenAccount: this.getInterestAccountTokenAccountAddress(collection.mint, collection.paymentMint),
-      bondMint: collection.mint,
-      paymentMint: collection.paymentMint,
-      kyc: this.getKycAddress(wallet),
-      pass: this.getAccessPassAddress(wallet),
-      tokenProgram: TOKEN_PROGRAM_ID,
-    });
+    let userHasPaymentTokenAccount = await this.checkIfAccountExists(userPaymentTokenAccount);
+    let preInstructions: TransactionInstruction[] = [];
+    if (!userHasPaymentTokenAccount) {
+      let ataIx = createAssociatedTokenAccountInstruction(
+        wallet,
+        userPaymentTokenAccount,
+        wallet,
+        collection.paymentMint
+      );
+      preInstructions.push(ataIx);
+    }
+    let methodBuilder = this._bondProgram.methods
+      .collectInterest()
+      .accounts({
+        owner: wallet,
+        collection: this.getCollectionAddress(collection.mint),
+        ownerNftTokenAccount: userNftTokenAccount,
+        ownerPaymentTokenAccount: userPaymentTokenAccount,
+        pdaBondTokenAccount: nftBondTokenAccount,
+        nft: nftAddress,
+        nftMint: collection.nftMint,
+        interest: this.getInterestAccountAddress(collection.mint),
+        interestPaymentTokenAccount: this.getInterestAccountTokenAccountAddress(
+          collection.mint,
+          collection.paymentMint
+        ),
+        bondMint: collection.mint,
+        paymentMint: collection.paymentMint,
+        kyc: this.getKycAddress(wallet),
+        pass: this.getAccessPassAddress(wallet),
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .preInstructions(preInstructions);
     return await methodBuilder.transaction();
   }
 
@@ -181,10 +212,20 @@ export class Bond {
       let balance = await this.fetchPdaTokenAccountBalance(userBondTokenAccount, collection.mint);
       amount = balance;
     }
-
     let userPaymentTokenAccount = getAssociatedTokenAddressSync(collection.paymentMint, wallet);
     let userBondtokenAccount = getAssociatedTokenAddressSync(collection.mint, wallet);
     let tokenAmount = this.UiToTokenAmount(amount, collection.paymentDecimals);
+    let userHasPaymentTokenAccount = await this.checkIfAccountExists(userPaymentTokenAccount);
+    let preInstructions: TransactionInstruction[] = [];
+    if (!userHasPaymentTokenAccount) {
+      let ataIx = createAssociatedTokenAccountInstruction(
+        wallet,
+        userPaymentTokenAccount,
+        wallet,
+        collection.paymentMint
+      );
+      preInstructions.push(ataIx);
+    }
     let methodBuilder = this._bondProgram.methods
       .collectParValue(tokenAmount)
       .accounts({})
@@ -205,7 +246,8 @@ export class Bond {
         kyc: this.getKycAddress(wallet),
         pass: this.getAccessPassAddress(wallet),
         tokenProgram: TOKEN_PROGRAM_ID,
-      });
+      })
+      .preInstructions(preInstructions);
     return await methodBuilder.transaction();
   }
 
@@ -216,24 +258,41 @@ export class Bond {
     let nftAddress = this.getNftAddress(nftMint);
     let nftPdaBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, nftAddress, true);
     let userPaymentTokenAccount = getAssociatedTokenAddressSync(collection.paymentMint, wallet);
-    let methodBuilder = this._bondProgram.methods.collectParValueForNft().accounts({
-      owner: wallet,
-      collection: this.getCollectionAddress(collection.mint),
-      ownerNftTokenAccount: userNftTokenAccount,
-      ownerPaymentTokenAccount: userPaymentTokenAccount,
-      pdaBondTokenAccount: nftPdaBondTokenAccount,
-      nft: nftAddress,
-      nftMint: collection.nftMint,
-      parValue: this.getParValueAccountAddress(collection.mint),
-      parValueTokenAccount: this.getParValueAccountTokenAccountAddress(collection.mint, collection.paymentMint),
-      interest: this.getInterestAccountAddress(collection.mint),
-      interestPaymentTokenAccount: this.getInterestAccountTokenAccountAddress(collection.mint, collection.paymentMint),
-      bondMint: collection.mint,
-      paymentMint: collection.paymentMint,
-      kyc: this.getKycAddress(wallet),
-      pass: this.getAccessPassAddress(wallet),
-      tokenProgram: TOKEN_PROGRAM_ID,
-    });
+    let userHasPaymentTokenAccount = await this.checkIfAccountExists(userPaymentTokenAccount);
+    let preInstructions: TransactionInstruction[] = [];
+    if (!userHasPaymentTokenAccount) {
+      let ataIx = createAssociatedTokenAccountInstruction(
+        wallet,
+        userPaymentTokenAccount,
+        wallet,
+        collection.paymentMint
+      );
+      preInstructions.push(ataIx);
+    }
+    let methodBuilder = this._bondProgram.methods
+      .collectParValueForNft()
+      .accounts({
+        owner: wallet,
+        collection: this.getCollectionAddress(collection.mint),
+        ownerNftTokenAccount: userNftTokenAccount,
+        ownerPaymentTokenAccount: userPaymentTokenAccount,
+        pdaBondTokenAccount: nftPdaBondTokenAccount,
+        nft: nftAddress,
+        nftMint: collection.nftMint,
+        parValue: this.getParValueAccountAddress(collection.mint),
+        parValueTokenAccount: this.getParValueAccountTokenAccountAddress(collection.mint, collection.paymentMint),
+        interest: this.getInterestAccountAddress(collection.mint),
+        interestPaymentTokenAccount: this.getInterestAccountTokenAccountAddress(
+          collection.mint,
+          collection.paymentMint
+        ),
+        bondMint: collection.mint,
+        paymentMint: collection.paymentMint,
+        kyc: this.getKycAddress(wallet),
+        pass: this.getAccessPassAddress(wallet),
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .preInstructions(preInstructions);
     return await methodBuilder.transaction();
   }
 
