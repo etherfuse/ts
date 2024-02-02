@@ -1,9 +1,14 @@
 {
   "name": "@etherfuse/bond-idl",
-  "version": "1.0.0",
+  "version": "0.0.11",
   "description": "The package containing some utility functions",
   "main": "build/index.js",
   "scripts": {
     "build": "tsc --build"
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "",
+  "license": "ISC"
 }
