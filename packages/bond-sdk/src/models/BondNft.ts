@@ -4,11 +4,6 @@ import Decimal from 'decimal.js';
 export type BondNft = {
   mint: PublicKey;
   description: string;
-  bondCollectionNftMint: PublicKey;
-  bondCollectionMint: PublicKey;
-  bondCollectionPaymentMint: PublicKey;
-  bondCollectionPaymentDecimals: number;
-  userWallet: PublicKey;
   supply: Decimal;
   interestRate: Decimal;
   coupon: Decimal;

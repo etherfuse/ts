@@ -3,8 +3,8 @@ import Decimal from 'decimal.js';
 
 export type BondToken = {
   mint: PublicKey;
-  supply: Decimal;
   description: string;
+  supply: Decimal;
   interestRate: Decimal;
   coupon: Decimal;
   parValue: Decimal;

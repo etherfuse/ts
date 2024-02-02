@@ -297,7 +297,77 @@ export class Bond {
     return await methodBuilder.transaction();
   }
 
-  async viewParValueReturns(amount: Decimal, collection: Collection): Promise<Decimal> {
+  async getUserBondNfts(wallet: PublicKey, collection: Collection[]): Promise<BondNft[]> {
+    let nftCollections = new Set(collection.map((c) => c.nftMint.toBase58()));
+    let collectionsMap = new Map(collection.map((c) => [c.nftMint.toBase58(), c]));
+    let nftsInWallet = (await this._metaplex.nfts().findAllByOwner({ owner: wallet })) as Nft[];
+    let bondNfts = nftsInWallet.filter((nft) => nftCollections.has(nft.collection!.address.toBase58()));
+    let bondNftModels: BondNft[] = [];
+    for (let nft of bondNfts) {
+      let collection = collectionsMap.get(nft.collection!.address.toBase58());
+      if (collection) {
+        let nftMint = new PublicKey(nft.mint);
+        let nftAddress = this.getNftAddress(nftMint);
+        let balance = await this.fetchPdaTokenAccountBalance(nftAddress, collection.mint);
+        let couponReturns = await this.viewCouponForNftReturns(nftMint, collection);
+        let parValueReturns = await this.viewParValueForNftReturns(nftMint, collection);
+        let imageUrl = await this.fetchImageFromURI(collection.nftUri);
+        let bondNft: BondNft = {
+          mint: nftMint,
+          description: collection.description,
+          interestRate: new Decimal(collection.interestRate),
+          supply: balance,
+          coupon: couponReturns,
+          parValue: parValueReturns,
+          uri: collection.nftUri,
+          imageUrl: imageUrl,
+          simulatedPriceError: false,
+        };
+        bondNftModels.push(bondNft);
+      }
+    }
+
+    return bondNftModels;
+  }
+
+  async getUserBondTokens(wallet: PublicKey, collection: Collection[]): Promise<BondToken[]> {
+    let bondTokenModels: BondToken[] = [];
+    await Promise.all(
+      collection.map(async (c) => {
+        let balance = await this.fetchTokenBalance(wallet, c.mint);
+        if (balance.greaterThan(0)) {
+          let couponReturns = await this.viewCouponReturns(balance, c);
+          let parValueReturns = await this.viewParValueReturns(balance, c);
+          let imageUrl = await this.fetchImageFromURI(c.tokenUri);
+          let bondToken: BondToken = {
+            mint: c.mint,
+            description: c.description,
+            interestRate: new Decimal(c.interestRate),
+            supply: new Decimal(balance),
+            coupon: couponReturns,
+            parValue: parValueReturns,
+            uri: c.tokenUri,
+            imageUrl: imageUrl,
+            simulatedPriceError: false,
+          };
+          bondTokenModels.push(bondToken);
+        }
+      })
+    );
+    return bondTokenModels;
+  }
+
+  async kycIsDone(wallet: PublicKey): Promise<boolean> {
+    let kycAddress = this.getKycAddress(wallet);
+    return await this.checkIfAccountExists(kycAddress);
+  }
+
+  async accessPassIsDone(wallet: PublicKey): Promise<boolean> {
+    let accessPassAddress = this.getAccessPassAddress(wallet);
+    return await this.checkIfAccountExists(accessPassAddress);
+  }
+
+  private async viewParValueReturns(amount: Decimal, collection: Collection): Promise<Decimal> {
     let tokenAmount = this.UiToTokenAmount(amount, collection.paymentDecimals);
     const methodBuilder = this._bondProgram.methods.viewParValueReturns({ amount: tokenAmount }).accounts({
       collection: this.getCollectionAddress(collection.mint),
@@ -313,30 +383,27 @@ export class Bond {
     return this.decimalToUiAmount(value.amount.toNumber(), collection.paymentDecimals);
   }
 
-  async viewParValueForNftReturns(bondNft: BondNft): Promise<Decimal> {
-    let nftAddress = this.getNftAddress(bondNft.mint);
-    let nftPdaBondTokenAccount = await getAssociatedTokenAddress(bondNft.bondCollectionMint, nftAddress, true);
+  private async viewParValueForNftReturns(nftMint: PublicKey, collection: Collection): Promise<Decimal> {
+    let nftAddress = this.getNftAddress(nftMint);
+    let nftPdaBondTokenAccount = await getAssociatedTokenAddress(collection.mint, nftAddress, true);
     const methodBuilder = this._bondProgram.methods.viewParValueReturnsForNft().accounts({
-      collection: bondNft.bondCollectionMint,
+      collection: collection.mint,
       pdaBondTokenAccount: nftPdaBondTokenAccount,
       nft: nftAddress,
-      parValue: this.getParValueAccountAddress(bondNft.bondCollectionMint),
-      parValueTokenAccount: await this.getParValueAccountTokenAccountAddress(
-        bondNft.bondCollectionMint,
-        bondNft.bondCollectionPaymentMint
-      ),
-      bondMint: bondNft.bondCollectionMint,
-      paymentMint: bondNft.bondCollectionPaymentMint,
-      nftMint: bondNft.mint,
+      parValue: this.getParValueAccountAddress(collection.mint),
+      parValueTokenAccount: await this.getParValueAccountTokenAccountAddress(collection.mint, collection.paymentMint),
+      bondMint: collection.mint,
+      paymentMint: collection.paymentMint,
+      nftMint: nftMint,
     });
     const transaction = await methodBuilder.transaction();
     const result = await this.simulateTransaction(transaction);
     const index = BOND_IDL.instructions.findIndex((f) => f.name === 'viewParValueForNftReturns');
     let value: ViewParValueReturnsOutput = await this.decodeLogs(result, index);
-    return this.decimalToUiAmount(value.amount.toNumber(), bondNft.bondCollectionPaymentDecimals);
+    return this.decimalToUiAmount(value.amount.toNumber(), collection.paymentDecimals);
   }
 
-  async viewCouponReturns(amount: Decimal, collection: Collection): Promise<Decimal> {
+  private async viewCouponReturns(amount: Decimal, collection: Collection): Promise<Decimal> {
     let tokenAmount = this.UiToTokenAmount(amount, collection.paymentDecimals);
     const methodBuilder = this._bondProgram.methods.viewCouponReturns({ amount: tokenAmount }).accounts({
       collection: this.getCollectionAddress(collection.mint),
@@ -355,46 +422,27 @@ export class Bond {
     return this.decimalToUiAmount(value.amount.toNumber(), collection.paymentDecimals);
   }
 
-  async viewCouponForNftReturns(bondNft: BondNft): Promise<Decimal> {
-    let nftAddress = this.getNftAddress(bondNft.mint);
-    let nftPdaBondTokenAccount = await getAssociatedTokenAddress(bondNft.bondCollectionMint, nftAddress, true);
+  private async viewCouponForNftReturns(nftMint: PublicKey, collection: Collection): Promise<Decimal> {
+    let nftAddress = this.getNftAddress(nftMint);
+    let nftPdaBondTokenAccount = await getAssociatedTokenAddress(collection.mint, nftAddress, true);
     const methodBuilder = this._bondProgram.methods.viewCouponReturnsForNft().accounts({
-      collection: bondNft.bondCollectionMint,
+      collection: collection.mint,
       pdaBondTokenAccount: nftPdaBondTokenAccount,
       nft: nftAddress,
-      interest: this.getInterestAccountAddress(bondNft.bondCollectionMint),
+      interest: this.getInterestAccountAddress(collection.mint),
       interestPaymentTokenAccount: await this.getInterestAccountTokenAccountAddress(
-        bondNft.bondCollectionMint,
-        bondNft.bondCollectionPaymentMint
+        collection.mint,
+        collection.paymentMint
       ),
-      bondMint: bondNft.bondCollectionMint,
-      paymentMint: bondNft.bondCollectionPaymentMint,
-      nftMint: bondNft.mint,
+      bondMint: collection.mint,
+      paymentMint: collection.paymentMint,
+      nftMint: nftMint,
     });
     const transaction = await methodBuilder.transaction();
     const result = await this.simulateTransaction(transaction);
     const index = BOND_IDL.instructions.findIndex((f) => f.name === 'viewCouponReturns');
     let value: ViewCouponReturnsOutput = await this.decodeLogs(result, index);
-    return this.decimalToUiAmount(value.amount.toNumber(), bondNft.bondCollectionPaymentDecimals);
-  }
-
-  async getUserNftBonds(wallet: PublicKey, collection: Collection[]): Promise<void> {
-    let nftCollections = new Set(collection.map((c) => c.nftMint.toBase58()));
-    let collectionsMap = new Map(collection.map((c) => [c.nftMint.toBase58(), c]));
-    let nftsInWallet = (await this._metaplex.nfts().findAllByOwner({ owner: wallet })) as Nft[];
-    let bondNfts = nftsInWallet.filter((nft) => nftCollections.has(nft.collection!.address.toBase58()));
-  }
-
-  async getUserTokenBonds(): Promise<void> {}
-
-  async kycIsDone(wallet: PublicKey): Promise<boolean> {
-    let kycAddress = this.getKycAddress(wallet);
-    return await this.checkIfAccountExists(kycAddress);
-  }
-
-  async accessPassIsDone(wallet: PublicKey): Promise<boolean> {
-    let accessPassAddress = this.getAccessPassAddress(wallet);
-    return await this.checkIfAccountExists(accessPassAddress);
+    return this.decimalToUiAmount(value.amount.toNumber(), collection.paymentDecimals);
   }
 
   private async getCompressedAssetInfo(wallet: PublicKey): Promise<AssetInfo | null> {
@@ -455,6 +503,27 @@ export class Bond {
 
   private async getParValueAccountTokenAccountAddress(mint: PublicKey, paymentMint: PublicKey): Promise<PublicKey> {
     return await getAssociatedTokenAddress(paymentMint, this.getParValueAccountAddress(mint), true);
+  }
+
+  private async fetchPdaTokenAccountBalance(pdaAddress: PublicKey, mint: PublicKey): Promise<Decimal> {
+    let tokenATA = await getAssociatedTokenAddress(mint, pdaAddress, true);
+    let balance = 0;
+
+    if (await this.checkIfAccountExists(tokenATA)) {
+      balance = (await this._connection.getTokenAccountBalance(tokenATA)).value.uiAmount!;
+    }
+
+    return new Decimal(balance);
+  }
+
+  private async fetchTokenBalance(owner: PublicKey, mint: PublicKey): Promise<Decimal> {
+    let tokenATA = await getAssociatedTokenAddress(mint, owner);
+    let balance = 0;
+
+    if (await this.checkIfAccountExists(tokenATA)) {
+      balance = (await this._connection.getTokenAccountBalance(tokenATA)).value.uiAmount!;
+    }
+    return new Decimal(balance);
   }
 
   private getMetadataAddress(mint: PublicKey): PublicKey {
@@ -518,12 +587,6 @@ export class Bond {
       }
     }
     return null;
-  }
-
-  private async fetchTokenMetadata(uri: string): Promise<TokenMetadata> {
-    const response = await fetch(uri);
-    const tokenMetadata: TokenMetadata = await response.json();
-    return tokenMetadata;
   }
 
   private async fetchImageFromURI(uri: string): Promise<string> {
