@@ -297,13 +297,85 @@ export class Bond {
     return await methodBuilder.transaction();
   }
 
-  async viewCouponReturnsForNft(wallet: PublicKey, bondNft: BondNft): Promise<Decimal> {
-    const methodBuilder = this._bondProgram.methods.viewCouponReturnsForNft().accounts({});
+  async viewParValueReturns(amount: Decimal, collection: Collection): Promise<Decimal> {
+    let tokenAmount = this.UiToTokenAmount(amount, collection.paymentDecimals);
+    const methodBuilder = this._bondProgram.methods.viewParValueReturns({ amount: tokenAmount }).accounts({
+      collection: this.getCollectionAddress(collection.mint),
+      parValue: this.getParValueAccountAddress(collection.mint),
+      parValueTokenAccount: await this.getParValueAccountTokenAccountAddress(collection.mint, collection.paymentMint),
+      bondMint: collection.mint,
+      paymentMint: collection.paymentMint,
+    });
+    const transaction = await methodBuilder.transaction();
+    const result = await this.simulateTransaction(transaction);
+    const index = BOND_IDL.instructions.findIndex((f) => f.name === 'viewParValueReturns');
+    let value: ViewParValueReturnsOutput = await this.decodeLogs(result, index);
+    return this.decimalToUiAmount(value.amount.toNumber(), collection.paymentDecimals);
+  }
+
+  async viewParValueForNftReturns(bondNft: BondNft): Promise<Decimal> {
+    let nftAddress = this.getNftAddress(bondNft.mint);
+    let nftPdaBondTokenAccount = await getAssociatedTokenAddress(bondNft.bondCollectionMint, nftAddress, true);
+    const methodBuilder = this._bondProgram.methods.viewParValueReturnsForNft().accounts({
+      collection: bondNft.bondCollectionMint,
+      pdaBondTokenAccount: nftPdaBondTokenAccount,
+      nft: nftAddress,
+      parValue: this.getParValueAccountAddress(bondNft.bondCollectionMint),
+      parValueTokenAccount: await this.getParValueAccountTokenAccountAddress(
+        bondNft.bondCollectionMint,
+        bondNft.bondCollectionPaymentMint
+      ),
+      bondMint: bondNft.bondCollectionMint,
+      paymentMint: bondNft.bondCollectionPaymentMint,
+      nftMint: bondNft.mint,
+    });
+    const transaction = await methodBuilder.transaction();
+    const result = await this.simulateTransaction(transaction);
+    const index = BOND_IDL.instructions.findIndex((f) => f.name === 'viewParValueForNftReturns');
+    let value: ViewParValueReturnsOutput = await this.decodeLogs(result, index);
+    return this.decimalToUiAmount(value.amount.toNumber(), bondNft.bondCollectionPaymentDecimals);
+  }
+
+  async viewCouponReturns(amount: Decimal, collection: Collection): Promise<Decimal> {
+    let tokenAmount = this.UiToTokenAmount(amount, collection.paymentDecimals);
+    const methodBuilder = this._bondProgram.methods.viewCouponReturns({ amount: tokenAmount }).accounts({
+      collection: this.getCollectionAddress(collection.mint),
+      interest: this.getInterestAccountAddress(collection.mint),
+      interestPaymentTokenAccount: await this.getInterestAccountTokenAccountAddress(
+        collection.mint,
+        collection.paymentMint
+      ),
+      bondMint: collection.mint,
+      paymentMint: collection.paymentMint,
+    });
     const transaction = await methodBuilder.transaction();
     const result = await this.simulateTransaction(transaction);
     const index = BOND_IDL.instructions.findIndex((f) => f.name === 'viewCouponReturns');
     let value: ViewCouponReturnsOutput = await this.decodeLogs(result, index);
-    return this.decimalToUiAmount(value.amount.toNumber(), 6);
+    return this.decimalToUiAmount(value.amount.toNumber(), collection.paymentDecimals);
+  }
+
+  async viewCouponForNftReturns(bondNft: BondNft): Promise<Decimal> {
+    let nftAddress = this.getNftAddress(bondNft.mint);
+    let nftPdaBondTokenAccount = await getAssociatedTokenAddress(bondNft.bondCollectionMint, nftAddress, true);
+    const methodBuilder = this._bondProgram.methods.viewCouponReturnsForNft().accounts({
+      collection: bondNft.bondCollectionMint,
+      pdaBondTokenAccount: nftPdaBondTokenAccount,
+      nft: nftAddress,
+      interest: this.getInterestAccountAddress(bondNft.bondCollectionMint),
+      interestPaymentTokenAccount: await this.getInterestAccountTokenAccountAddress(
+        bondNft.bondCollectionMint,
+        bondNft.bondCollectionPaymentMint
+      ),
+      bondMint: bondNft.bondCollectionMint,
+      paymentMint: bondNft.bondCollectionPaymentMint,
+      nftMint: bondNft.mint,
+    });
+    const transaction = await methodBuilder.transaction();
+    const result = await this.simulateTransaction(transaction);
+    const index = BOND_IDL.instructions.findIndex((f) => f.name === 'viewCouponReturns');
+    let value: ViewCouponReturnsOutput = await this.decodeLogs(result, index);
+    return this.decimalToUiAmount(value.amount.toNumber(), bondNft.bondCollectionPaymentDecimals);
   }
 
   async getUserNftBonds(wallet: PublicKey, collection: Collection[]): Promise<void> {
@@ -323,38 +395,6 @@ export class Bond {
   async accessPassIsDone(wallet: PublicKey): Promise<boolean> {
     let accessPassAddress = this.getAccessPassAddress(wallet);
     return await this.checkIfAccountExists(accessPassAddress);
-  }
-
-  private async simulateTransaction(
-    transaction: Transaction
-  ): Promise<RpcResponseAndContext<SimulatedTransactionResponse>> {
-    transaction.feePayer = this._provider.publicKey;
-    return this._connection.simulateTransaction(transaction);
-  }
-
-  private decodeLogs<T>(data: RpcResponseAndContext<SimulatedTransactionResponse>, instructionNumber: number): T {
-    const returnPrefix = `Program return: ${this._bondProgramId} `;
-    // console.log("Data:", data);
-    if (data.value.logs && data.value.err === null) {
-      let returnLog = data.value.logs.find((l: any) => l.startsWith(returnPrefix));
-      if (!returnLog) {
-        throw new Error('View expected return log');
-      }
-      let returnData = decode(returnLog.slice(returnPrefix.length));
-      // @ts-ignore
-      let returnType = BOND_IDL.instructions[instructionNumber].returns;
-
-      if (!returnType) {
-        throw new Error('View expected return type');
-      }
-      const coder = IdlCoder.fieldLayout(
-        { type: returnType },
-        Array.from([...(IDL.accounts ?? []), ...(IDL.types ?? [])])
-      );
-      return coder.decode(returnData);
-    } else {
-      throw new Error(`No Logs Found `);
-    }
   }
 
   private async getCompressedAssetInfo(wallet: PublicKey): Promise<AssetInfo | null> {
@@ -506,6 +546,38 @@ export class Bond {
 
   private generateId() {
     return Math.floor(Math.random() * 1000000000).toString();
+  }
+
+  private async simulateTransaction(
+    transaction: Transaction
+  ): Promise<RpcResponseAndContext<SimulatedTransactionResponse>> {
+    transaction.feePayer = this._provider.publicKey;
+    return this._connection.simulateTransaction(transaction);
+  }
+
+  private decodeLogs<T>(data: RpcResponseAndContext<SimulatedTransactionResponse>, instructionNumber: number): T {
+    const returnPrefix = `Program return: ${this._bondProgramId} `;
+    // console.log("Data:", data);
+    if (data.value.logs && data.value.err === null) {
+      let returnLog = data.value.logs.find((l: any) => l.startsWith(returnPrefix));
+      if (!returnLog) {
+        throw new Error('View expected return log');
+      }
+      let returnData = decode(returnLog.slice(returnPrefix.length));
+      // @ts-ignore
+      let returnType = BOND_IDL.instructions[instructionNumber].returns;
+
+      if (!returnType) {
+        throw new Error('View expected return type');
+      }
+      const coder = IdlCoder.fieldLayout(
+        { type: returnType },
+        Array.from([...(IDL.accounts ?? []), ...(IDL.types ?? [])])
+      );
+      return coder.decode(returnData);
+    } else {
+      throw new Error(`No Logs Found `);
+    }
   }
 }
 

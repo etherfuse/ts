@@ -6,6 +6,8 @@ export type BondNft = {
   description: string;
   bondCollectionNftMint: PublicKey;
   bondCollectionMint: PublicKey;
+  bondCollectionPaymentMint: PublicKey;
+  bondCollectionPaymentDecimals: number;
   userWallet: PublicKey;
   supply: Decimal;
   interestRate: Decimal;
