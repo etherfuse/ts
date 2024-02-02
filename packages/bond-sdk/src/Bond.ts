@@ -117,6 +117,7 @@ export class Bond {
 
   async exchangeTokensForNFT(amount: Decimal, wallet: PublicKey, collection: Collection): Promise<Transaction> {
     let userBondTokenAccount = await getAssociatedTokenAddress(collection.mint, wallet);
+    // generate a new NFT mint
     let nftMint = Keypair.generate();
     let nftAddress = this.getNftAddress(nftMint.publicKey);
     let nftBondTokenAccount = await getAssociatedTokenAddress(collection.mint, nftAddress, true);
