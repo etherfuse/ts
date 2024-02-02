@@ -1,6 +1,6 @@
 {
   "name": "@etherfuse/bond-sdk",
-  "version": "0.0.22",
+  "version": "0.0.23",
   "description": "The sdk to the etherfuse bond program",
   "main": "dist/bond-sdk/src/index.js",
   "types": "dist/bond-sdk/src/index.d.ts",
@@ -27,8 +27,8 @@
   "homepage": "https://github.com/etherfuse/ts#readme",
   "dependencies": {
     "@coral-xyz/anchor": "^0.29.0",
-    "@etherfuse/bond-idl": "^0.0.22",
-    "@etherfuse/utils": "^0.0.22",
+    "@etherfuse/bond-idl": "^0.0.23",
+    "@etherfuse/utils": "^0.0.23",
     "@metaplex-foundation/js": "^0.20.1",
     "@metaplex-foundation/mpl-bubblegum": "0.6.2",
     "@solana/spl-account-compression": "^0.2.0",
