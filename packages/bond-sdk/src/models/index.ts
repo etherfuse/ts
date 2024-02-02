@@ -1,7 +1,6 @@
 export * from './Admin';
 export * from './AssetInfo';
 export * from './AssetProof';
-export * from './BondNft';
 export * from './BondToken';
 export * from './Collection';
 export * from './FundingAccounts';

@@ -8,20 +8,19 @@ import {
   SystemProgram,
   Keypair,
   TransactionInstruction,
-  ComputeBudgetProgram,
   RpcResponseAndContext,
   SimulatedTransactionResponse,
 } from '@solana/web3.js';
 import { BOND_IDL, IDL } from '@etherfuse/bond-idl';
 import { IdlCoder } from './utils/idlCoder';
-import { Collection, AssetInfo, AssetProof, TokenMetadata, BondNft, BondToken } from './models';
-import { getReadOnlyWallet, replaceBigNumberWithDecimal } from './utils';
+import { Collection, AssetInfo, AssetProof, TokenMetadata, BondToken } from './models';
+import { replaceBigNumberWithDecimal } from './utils';
 import {
   SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
   SPL_NOOP_PROGRAM_ID,
   ConcurrentMerkleTreeAccount,
 } from '@solana/spl-account-compression';
-import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { PROGRAM_ID as BUBBLEGUM_PROGRAM_ID } from '@metaplex-foundation/mpl-bubblegum';
 import Decimal from 'decimal.js';
 import { PROGRAM_ID as TOKEN_METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata';
@@ -55,20 +54,25 @@ export class Bond {
 
   async getCollection(mint: PublicKey): Promise<Collection> {
     let address = this.getCollectionAddress(mint);
-    const collection = (await this._bondProgram.account.collection.fetch(address)).account as Collection;
+    const collection = (await this._bondProgram.account.collection.fetch(address)) as Collection;
     return replaceBigNumberWithDecimal(collection);
   }
 
-  async getReturnsOnCollection(amount: Decimal, collection: Collection): Promise<Decimal> {
+  async getReturnsOnCollection(
+    amount: Decimal,
+    collection: Pick<Collection, 'startDate' | 'interestRate' | 'maturityDate'>
+  ): Promise<Decimal> {
     let couponAPY = amount.mul(collection.interestRate);
     let daysToMaturity = Math.ceil((collection.maturityDate - collection.startDate) / (1000 * 60 * 60 * 24));
     let couponReturns = couponAPY.div(365.25).mul(daysToMaturity);
     return amount.add(couponReturns);
   }
 
-  async mintBond(amount: Decimal, wallet: PublicKey, collection: Collection): Promise<Transaction> {
-    let userPaymentTokenAccount = await getAssociatedTokenAddress(collection.paymentMint, wallet);
-    let userBondTokenAccount = await getAssociatedTokenAddress(collection.mint, wallet);
+  async mintBond(amount: Decimal, collectionMint: PublicKey): Promise<Transaction> {
+    let collection = await this.getCollection(collectionMint);
+    let wallet = this._provider.publicKey!;
+    let userPaymentTokenAccount = getAssociatedTokenAddressSync(collection.paymentMint, wallet);
+    let userBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, wallet);
     let tokenAmount = this.UiToTokenAmount(amount, collection.paymentDecimals);
     let methodBuilder = this._bondProgram.methods.mintBond(tokenAmount).accounts({
       owner: wallet,
@@ -76,7 +80,7 @@ export class Bond {
       mint: collection.mint,
       bondTokenAccount: userBondTokenAccount,
       paymentAccount: this.getPaymentAccountAddress(collection.paymentMint),
-      paymentTokenAccount: await this.getPaymentAccountTokenAccountAddress(collection.mint, collection.paymentMint),
+      paymentTokenAccount: this.getPaymentAccountTokenAccountAddress(collection.mint, collection.paymentMint),
       paymentPriceFeed: collection.oracleParams.oracleAccount,
       ownerTokenAccount: userPaymentTokenAccount,
       paymentMint: collection.paymentMint,
@@ -89,12 +93,19 @@ export class Bond {
     return await methodBuilder.transaction();
   }
 
-  async exchangeTokensForNFT(amount: Decimal, wallet: PublicKey, collection: Collection): Promise<Transaction> {
-    let userBondTokenAccount = await getAssociatedTokenAddress(collection.mint, wallet);
+  async exchangeTokensForNFT(collectionMint: PublicKey, amount?: Decimal): Promise<Transaction> {
+    let collection = await this.getCollection(collectionMint);
+    let wallet = this._provider.publicKey!;
+    if (!amount) {
+      let userBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, wallet);
+      let balance = await this.fetchPdaTokenAccountBalance(userBondTokenAccount, collection.mint);
+      amount = balance;
+    }
+    let userBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, wallet);
     let nftMint = Keypair.generate();
     let nftAddress = this.getNftAddress(nftMint.publicKey);
-    let nftBondTokenAccount = await getAssociatedTokenAddress(collection.mint, nftAddress, true);
-    let ownerNftTokenAccount = await getAssociatedTokenAddress(nftMint.publicKey, wallet);
+    let nftBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, nftAddress, true);
+    let ownerNftTokenAccount = getAssociatedTokenAddressSync(nftMint.publicKey, wallet);
     let setNftInstruction = await this._bondProgram.methods
       .exchangeTokensForNFT()
       .accounts({
@@ -136,11 +147,13 @@ export class Bond {
     return await methodBuilder.transaction();
   }
 
-  async collectInterest(wallet: PublicKey, collection: Collection): Promise<Transaction> {
-    let userNftTokenAccount = await getAssociatedTokenAddress(collection.nftMint, wallet);
-    let userPaymentTokenAccount = await getAssociatedTokenAddress(collection.paymentMint, wallet);
+  async collectInterest(collectionMint: PublicKey): Promise<Transaction> {
+    let collection = await this.getCollection(collectionMint);
+    let wallet = this._provider.publicKey!;
+    let userNftTokenAccount = getAssociatedTokenAddressSync(collection.nftMint, wallet);
+    let userPaymentTokenAccount = getAssociatedTokenAddressSync(collection.paymentMint, wallet);
     let nftAddress = this.getNftAddress(collection.nftMint);
-    let nftBondTokenAccount = await getAssociatedTokenAddress(collection.mint, nftAddress, true);
+    let nftBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, nftAddress, true);
     let methodBuilder = this._bondProgram.methods.collectInterest().accounts({
       owner: wallet,
       collection: this.getCollectionAddress(collection.mint),
@@ -150,10 +163,7 @@ export class Bond {
       nft: nftAddress,
       nftMint: collection.nftMint,
       interest: this.getInterestAccountAddress(collection.mint),
-      interestPaymentTokenAccount: await this.getInterestAccountTokenAccountAddress(
-        collection.mint,
-        collection.paymentMint
-      ),
+      interestPaymentTokenAccount: this.getInterestAccountTokenAccountAddress(collection.mint, collection.paymentMint),
       bondMint: collection.mint,
       paymentMint: collection.paymentMint,
       kyc: this.getKycAddress(wallet),
@@ -163,9 +173,17 @@ export class Bond {
     return await methodBuilder.transaction();
   }
 
-  async collectParValue(amount: Decimal, wallet: PublicKey, collection: Collection): Promise<Transaction> {
-    let userPaymentTokenAccount = await getAssociatedTokenAddress(collection.paymentMint, wallet);
-    let userBondtokenAccount = await getAssociatedTokenAddress(collection.mint, wallet);
+  async collectParValue(collectionMint: PublicKey, amount?: Decimal): Promise<Transaction> {
+    let collection = await this.getCollection(collectionMint);
+    let wallet = this._provider.publicKey!;
+    if (!amount) {
+      let userBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, wallet);
+      let balance = await this.fetchPdaTokenAccountBalance(userBondTokenAccount, collection.mint);
+      amount = balance;
+    }
+
+    let userPaymentTokenAccount = getAssociatedTokenAddressSync(collection.paymentMint, wallet);
+    let userBondtokenAccount = getAssociatedTokenAddressSync(collection.mint, wallet);
     let tokenAmount = this.UiToTokenAmount(amount, collection.paymentDecimals);
     let methodBuilder = this._bondProgram.methods
       .collectParValue(tokenAmount)
@@ -177,9 +195,9 @@ export class Bond {
         bondMint: collection.mint,
         ownerBondTokenAccount: userBondtokenAccount,
         parValue: this.getParValueAccountAddress(collection.mint),
-        parValueTokenAccount: await this.getParValueAccountTokenAccountAddress(collection.mint, collection.paymentMint),
+        parValueTokenAccount: this.getParValueAccountTokenAccountAddress(collection.mint, collection.paymentMint),
         interest: this.getInterestAccountAddress(collection.mint),
-        interestPaymentTokenAccount: await this.getInterestAccountTokenAccountAddress(
+        interestPaymentTokenAccount: this.getInterestAccountTokenAccountAddress(
           collection.mint,
           collection.paymentMint
         ),
@@ -191,11 +209,13 @@ export class Bond {
     return await methodBuilder.transaction();
   }
 
-  async collectParValueForNft(wallet: PublicKey, collection: Collection): Promise<Transaction> {
-    let userNftTokenAccount = await getAssociatedTokenAddress(collection.nftMint, wallet);
-    let nftAddress = this.getNftAddress(collection.nftMint);
-    let nftPdaBondTokenAccount = await getAssociatedTokenAddress(collection.mint, nftAddress, true);
-    let userPaymentTokenAccount = await getAssociatedTokenAddress(collection.paymentMint, wallet);
+  async collectParValueForNft(nftMint: PublicKey, collectionMint: PublicKey): Promise<Transaction> {
+    let collection = await this.getCollection(collectionMint);
+    let wallet = this._provider.publicKey!;
+    let userNftTokenAccount = getAssociatedTokenAddressSync(nftMint, wallet);
+    let nftAddress = this.getNftAddress(nftMint);
+    let nftPdaBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, nftAddress, true);
+    let userPaymentTokenAccount = getAssociatedTokenAddressSync(collection.paymentMint, wallet);
     let methodBuilder = this._bondProgram.methods.collectParValueForNft().accounts({
       owner: wallet,
       collection: this.getCollectionAddress(collection.mint),
@@ -205,12 +225,9 @@ export class Bond {
       nft: nftAddress,
       nftMint: collection.nftMint,
       parValue: this.getParValueAccountAddress(collection.mint),
-      parValueTokenAccount: await this.getParValueAccountTokenAccountAddress(collection.mint, collection.paymentMint),
+      parValueTokenAccount: this.getParValueAccountTokenAccountAddress(collection.mint, collection.paymentMint),
       interest: this.getInterestAccountAddress(collection.mint),
-      interestPaymentTokenAccount: await this.getInterestAccountTokenAccountAddress(
-        collection.mint,
-        collection.paymentMint
-      ),
+      interestPaymentTokenAccount: this.getInterestAccountTokenAccountAddress(collection.mint, collection.paymentMint),
       bondMint: collection.mint,
       paymentMint: collection.paymentMint,
       kyc: this.getKycAddress(wallet),
@@ -220,7 +237,8 @@ export class Bond {
     return await methodBuilder.transaction();
   }
 
-  async burnAccessPass(wallet: PublicKey): Promise<Transaction> {
+  async burnAccessPass(): Promise<Transaction> {
+    let wallet = this._provider.publicKey!;
     let assetInfo = await this.getCompressedAssetInfo(wallet);
     if (!assetInfo) {
       throw new Error('No asset info found for the access pass');
@@ -281,50 +299,51 @@ export class Bond {
     return await methodBuilder.transaction();
   }
 
-  async getUserBondNfts(wallet: PublicKey, collection: Collection[]): Promise<BondNft[]> {
-    let nftCollections = new Set(collection.map((c) => c.nftMint.toBase58()));
-    let collectionsMap = new Map(collection.map((c) => [c.nftMint.toBase58(), c]));
+  async getUserBonds(): Promise<BondToken[]> {
+    let collections: Collection[] = await this.getCollections();
+    let wallet = this._provider.publicKey!;
+    let nftCollections = new Set(collections.map((c) => c.nftMint.toBase58()));
+    let collectionsMap = new Map(collections.map((c) => [c.nftMint.toBase58(), c]));
     let nftsInWallet = (await this._metaplex.nfts().findAllByOwner({ owner: wallet })) as Nft[];
     let bondNfts = nftsInWallet.filter((nft) => nftCollections.has(nft.collection!.address.toBase58()));
-    let bondNftModels: BondNft[] = [];
-    for (let nft of bondNfts) {
-      let collection = collectionsMap.get(nft.collection!.address.toBase58());
-      if (collection) {
-        let nftMint = new PublicKey(nft.mint);
-        let nftAddress = this.getNftAddress(nftMint);
-        let balance = await this.fetchPdaTokenAccountBalance(nftAddress, collection.mint);
-        let couponReturns = await this.viewCouponForNftReturns(nftMint, collection);
-        let parValueReturns = await this.viewParValueForNftReturns(nftMint, collection);
-        let imageUrl = await this.fetchImageFromURI(collection.nftUri);
-        let bondNft: BondNft = {
-          mint: nftMint,
-          description: collection.description,
-          interestRate: new Decimal(collection.interestRate),
-          supply: balance,
-          coupon: couponReturns,
-          parValue: parValueReturns,
-          uri: collection.nftUri,
-          imageUrl: imageUrl,
-          simulatedPriceError: false,
-        };
-        bondNftModels.push(bondNft);
-      }
-    }
-
-    return bondNftModels;
-  }
-
-  async getUserBondTokens(wallet: PublicKey, collection: Collection[]): Promise<BondToken[]> {
     let bondTokenModels: BondToken[] = [];
     await Promise.all(
-      collection.map(async (c) => {
+      bondNfts.map(async (nft) => {
+        let collection = collectionsMap.get(nft.collection!.address.toBase58());
+        if (collection) {
+          let nftMint = new PublicKey(nft.mint);
+          let nftAddress = this.getNftAddress(nftMint);
+          let balance = await this.fetchPdaTokenAccountBalance(nftAddress, collection.mint);
+          let couponReturns = await this.viewCouponForNftReturns(nftMint, collection.mint);
+          let parValueReturns = await this.viewParValueForNftReturns(nftMint, collection.mint);
+          let imageUrl = await this.fetchImageFromURI(collection.nftUri);
+          let bondNft: BondToken = {
+            mint: nftMint,
+            isNft: true,
+            description: collection.description,
+            interestRate: new Decimal(collection.interestRate),
+            supply: balance,
+            coupon: couponReturns,
+            parValue: parValueReturns,
+            uri: collection.nftUri,
+            imageUrl: imageUrl,
+            simulatedPriceError: false,
+          };
+          bondTokenModels.push(bondNft);
+        }
+      })
+    );
+
+    await Promise.all(
+      collections.map(async (c) => {
         let balance = await this.fetchTokenBalance(wallet, c.mint);
         if (balance.greaterThan(0)) {
-          let couponReturns = await this.viewCouponReturns(balance, c);
-          let parValueReturns = await this.viewParValueReturns(balance, c);
+          let couponReturns = await this.viewCouponReturns(balance, c.mint);
+          let parValueReturns = await this.viewParValueReturns(balance, c.mint);
           let imageUrl = await this.fetchImageFromURI(c.tokenUri);
           let bondToken: BondToken = {
             mint: c.mint,
+            isNft: false,
             description: c.description,
             interestRate: new Decimal(c.interestRate),
             supply: new Decimal(balance),
@@ -338,44 +357,49 @@ export class Bond {
         }
       })
     );
+
     return bondTokenModels;
   }
 
-  async kycIsDone(wallet: PublicKey): Promise<boolean> {
+  async kycIsDone(): Promise<boolean> {
+    let wallet = this._provider.publicKey!;
     let kycAddress = this.getKycAddress(wallet);
     return await this.checkIfAccountExists(kycAddress);
   }
 
-  async accessPassIsDone(wallet: PublicKey): Promise<boolean> {
+  async accessPassIsDone(): Promise<boolean> {
+    let wallet = this._provider.publicKey!;
     let accessPassAddress = this.getAccessPassAddress(wallet);
     return await this.checkIfAccountExists(accessPassAddress);
   }
 
-  private async viewParValueReturns(amount: Decimal, collection: Collection): Promise<Decimal> {
+  private async viewParValueReturns(amount: Decimal, collectionMint: PublicKey): Promise<Decimal> {
+    let collection = await this.getCollection(collectionMint);
     let tokenAmount = this.UiToTokenAmount(amount, collection.paymentDecimals);
     const methodBuilder = this._bondProgram.methods.viewParValueReturns({ amount: tokenAmount }).accounts({
       collection: this.getCollectionAddress(collection.mint),
       parValue: this.getParValueAccountAddress(collection.mint),
-      parValueTokenAccount: await this.getParValueAccountTokenAccountAddress(collection.mint, collection.paymentMint),
+      parValueTokenAccount: this.getParValueAccountTokenAccountAddress(collection.mint, collection.paymentMint),
       bondMint: collection.mint,
       paymentMint: collection.paymentMint,
     });
     const transaction = await methodBuilder.transaction();
     const result = await this.simulateTransaction(transaction);
     const index = BOND_IDL.instructions.findIndex((f) => f.name === 'viewParValueReturns');
-    let value: ViewParValueReturnsOutput = await this.decodeLogs(result, index);
+    let value: ViewReturnsOutput = await this.decodeLogs(result, index);
     return this.decimalToUiAmount(value.amount.toNumber(), collection.paymentDecimals);
   }
 
-  private async viewParValueForNftReturns(nftMint: PublicKey, collection: Collection): Promise<Decimal> {
+  private async viewParValueForNftReturns(nftMint: PublicKey, collectionMint: PublicKey): Promise<Decimal> {
+    let collection = await this.getCollection(collectionMint);
     let nftAddress = this.getNftAddress(nftMint);
-    let nftPdaBondTokenAccount = await getAssociatedTokenAddress(collection.mint, nftAddress, true);
+    let nftPdaBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, nftAddress, true);
     const methodBuilder = this._bondProgram.methods.viewParValueReturnsForNft().accounts({
       collection: collection.mint,
       pdaBondTokenAccount: nftPdaBondTokenAccount,
       nft: nftAddress,
       parValue: this.getParValueAccountAddress(collection.mint),
-      parValueTokenAccount: await this.getParValueAccountTokenAccountAddress(collection.mint, collection.paymentMint),
+      parValueTokenAccount: this.getParValueAccountTokenAccountAddress(collection.mint, collection.paymentMint),
       bondMint: collection.mint,
       paymentMint: collection.paymentMint,
       nftMint: nftMint,
@@ -383,41 +407,37 @@ export class Bond {
     const transaction = await methodBuilder.transaction();
     const result = await this.simulateTransaction(transaction);
     const index = BOND_IDL.instructions.findIndex((f) => f.name === 'viewParValueForNftReturns');
-    let value: ViewParValueReturnsOutput = await this.decodeLogs(result, index);
+    let value: ViewReturnsOutput = await this.decodeLogs(result, index);
     return this.decimalToUiAmount(value.amount.toNumber(), collection.paymentDecimals);
   }
 
-  private async viewCouponReturns(amount: Decimal, collection: Collection): Promise<Decimal> {
+  private async viewCouponReturns(amount: Decimal, collectionMint: PublicKey): Promise<Decimal> {
+    let collection = await this.getCollection(collectionMint);
     let tokenAmount = this.UiToTokenAmount(amount, collection.paymentDecimals);
     const methodBuilder = this._bondProgram.methods.viewCouponReturns({ amount: tokenAmount }).accounts({
       collection: this.getCollectionAddress(collection.mint),
       interest: this.getInterestAccountAddress(collection.mint),
-      interestPaymentTokenAccount: await this.getInterestAccountTokenAccountAddress(
-        collection.mint,
-        collection.paymentMint
-      ),
+      interestPaymentTokenAccount: this.getInterestAccountTokenAccountAddress(collection.mint, collection.paymentMint),
       bondMint: collection.mint,
       paymentMint: collection.paymentMint,
     });
     const transaction = await methodBuilder.transaction();
     const result = await this.simulateTransaction(transaction);
     const index = BOND_IDL.instructions.findIndex((f) => f.name === 'viewCouponReturns');
-    let value: ViewCouponReturnsOutput = await this.decodeLogs(result, index);
+    let value: ViewReturnsOutput = await this.decodeLogs(result, index);
     return this.decimalToUiAmount(value.amount.toNumber(), collection.paymentDecimals);
   }
 
-  private async viewCouponForNftReturns(nftMint: PublicKey, collection: Collection): Promise<Decimal> {
+  private async viewCouponForNftReturns(nftMint: PublicKey, collectionMint: PublicKey): Promise<Decimal> {
+    let collection = await this.getCollection(collectionMint);
     let nftAddress = this.getNftAddress(nftMint);
-    let nftPdaBondTokenAccount = await getAssociatedTokenAddress(collection.mint, nftAddress, true);
+    let nftPdaBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, nftAddress, true);
     const methodBuilder = this._bondProgram.methods.viewCouponReturnsForNft().accounts({
       collection: collection.mint,
       pdaBondTokenAccount: nftPdaBondTokenAccount,
       nft: nftAddress,
       interest: this.getInterestAccountAddress(collection.mint),
-      interestPaymentTokenAccount: await this.getInterestAccountTokenAccountAddress(
-        collection.mint,
-        collection.paymentMint
-      ),
+      interestPaymentTokenAccount: this.getInterestAccountTokenAccountAddress(collection.mint, collection.paymentMint),
       bondMint: collection.mint,
       paymentMint: collection.paymentMint,
       nftMint: nftMint,
@@ -425,7 +445,7 @@ export class Bond {
     const transaction = await methodBuilder.transaction();
     const result = await this.simulateTransaction(transaction);
     const index = BOND_IDL.instructions.findIndex((f) => f.name === 'viewCouponReturns');
-    let value: ViewCouponReturnsOutput = await this.decodeLogs(result, index);
+    let value: ViewReturnsOutput = await this.decodeLogs(result, index);
     return this.decimalToUiAmount(value.amount.toNumber(), collection.paymentDecimals);
   }
 
@@ -469,28 +489,28 @@ export class Bond {
     return PublicKey.findProgramAddressSync([Buffer.from('payment'), mint.toBuffer()], this._bondProgramId)[0];
   }
 
-  private async getPaymentAccountTokenAccountAddress(mint: PublicKey, paymentMint: PublicKey): Promise<PublicKey> {
-    return await getAssociatedTokenAddress(paymentMint, this.getPaymentAccountAddress(mint), true);
+  private getPaymentAccountTokenAccountAddress(mint: PublicKey, paymentMint: PublicKey): PublicKey {
+    return getAssociatedTokenAddressSync(paymentMint, this.getPaymentAccountAddress(mint), true);
   }
 
   private getInterestAccountAddress(mint: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync([Buffer.from('interest'), mint.toBuffer()], this._bondProgramId)[0];
   }
 
-  private async getInterestAccountTokenAccountAddress(mint: PublicKey, paymentMint: PublicKey): Promise<PublicKey> {
-    return await getAssociatedTokenAddress(paymentMint, this.getInterestAccountAddress(mint), true);
+  private getInterestAccountTokenAccountAddress(mint: PublicKey, paymentMint: PublicKey): PublicKey {
+    return getAssociatedTokenAddressSync(paymentMint, this.getInterestAccountAddress(mint), true);
   }
 
   private getParValueAccountAddress(mint: PublicKey): PublicKey {
     return PublicKey.findProgramAddressSync([Buffer.from('par_value'), mint.toBuffer()], this._bondProgramId)[0];
   }
 
-  private async getParValueAccountTokenAccountAddress(mint: PublicKey, paymentMint: PublicKey): Promise<PublicKey> {
-    return await getAssociatedTokenAddress(paymentMint, this.getParValueAccountAddress(mint), true);
+  private getParValueAccountTokenAccountAddress(mint: PublicKey, paymentMint: PublicKey): PublicKey {
+    return getAssociatedTokenAddressSync(paymentMint, this.getParValueAccountAddress(mint), true);
   }
 
   private async fetchPdaTokenAccountBalance(pdaAddress: PublicKey, mint: PublicKey): Promise<Decimal> {
-    let tokenATA = await getAssociatedTokenAddress(mint, pdaAddress, true);
+    let tokenATA = getAssociatedTokenAddressSync(mint, pdaAddress, true);
     let balance = 0;
 
     if (await this.checkIfAccountExists(tokenATA)) {
@@ -501,7 +521,7 @@ export class Bond {
   }
 
   private async fetchTokenBalance(owner: PublicKey, mint: PublicKey): Promise<Decimal> {
-    let tokenATA = await getAssociatedTokenAddress(mint, owner);
+    let tokenATA = getAssociatedTokenAddressSync(mint, owner);
     let balance = 0;
 
     if (await this.checkIfAccountExists(tokenATA)) {
@@ -628,15 +648,7 @@ export class Bond {
   }
 }
 
-export interface ViewCouponReturnsOutput {
-  amount: BN;
-}
-
-export interface ViewParValueForNFTReturnsOutput {
-  amount: BN;
-}
-
-export interface ViewParValueReturnsOutput {
+interface ViewReturnsOutput {
   amount: BN;
 }
 

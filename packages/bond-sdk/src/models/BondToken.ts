@@ -4,6 +4,7 @@ import Decimal from 'decimal.js';
 export type BondToken = {
   mint: PublicKey;
   description: string;
+  isNft: boolean;
   supply: Decimal;
   interestRate: Decimal;
   coupon: Decimal;

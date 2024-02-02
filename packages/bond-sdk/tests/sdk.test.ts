@@ -18,6 +18,8 @@ describe('Bond SDK', () => {
       new PublicKey('H7HAVkjcxNYcSDF8r2R43AypAobMGbZ5x9SYkyv8pqxk')
     );
     let collections = await bond.getCollections();
-    console.log(collections);
+    expect(collections).to.not.be.empty;
+    let collection = await bond.getCollection(collections[0].mint);
+    expect(collection).to.not.be.empty;
   });
 });
