@@ -28,7 +28,6 @@
   "dependencies": {
     "@coral-xyz/anchor": "^0.29.0",
     "@etherfuse/bond-idl": "^0.0.26",
-    "@etherfuse/utils": "^0.0.26",
     "@metaplex-foundation/js": "^0.20.1",
     "@metaplex-foundation/mpl-bubblegum": "0.6.2",
     "@solana/spl-account-compression": "^0.2.0",

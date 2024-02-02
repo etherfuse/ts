@@ -6,7 +6,6 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@etherfuse/utils": ["../utils/src"],
       "@etherfuse/bond-idl": ["../bond-idl/src"]
     }
   },

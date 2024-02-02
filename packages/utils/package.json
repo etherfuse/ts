@@ -1,9 +1,0 @@
-{
-  "name": "@etherfuse/utils",
-  "version": "0.0.26",
-  "description": "The package containing some utility functions",
-  "main": "build/index.js",
-  "scripts": {
-    "build": "tsc --build"
-  }
-}
