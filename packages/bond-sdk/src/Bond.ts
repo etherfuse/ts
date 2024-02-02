@@ -31,28 +31,17 @@ export class Bond {
   private readonly _connection: Connection;
   private readonly _bondProgramId: PublicKey;
   private readonly _accessPassCollection: PublicKey;
-  private _provider: Provider;
+  private readonly _provider: Provider;
   private _bondProgram: Program;
   private _metaplex: Metaplex;
 
-  constructor(connection: Connection, bondProgramId?: PublicKey, accessPassCollection?: PublicKey, wallet?: Wallet) {
+  constructor(connection: Connection, wallet: Wallet, bondProgramId?: PublicKey, accessPassCollection?: PublicKey) {
     this._connection = connection;
-    if (!wallet) {
-      wallet = getReadOnlyWallet();
-    }
     this._provider = new AnchorProvider(connection, wallet, {
       commitment: connection.commitment,
     });
     this._bondProgramId = bondProgramId || new PublicKey('EfuseVF62VgpYmXroXkNww8qKCQudeHAEzczSAC7Xsir');
     this._accessPassCollection = accessPassCollection || new PublicKey('FYCPa15hAFeDJ4CUNoMjGyQAkKPmzQ93uUaTyqae8tMN');
-    this._metaplex = new Metaplex(this._connection).use(walletAdapterIdentity(wallet));
-    this._bondProgram = new Program(BOND_IDL as Idl, this._bondProgramId, this._provider);
-  }
-
-  async setWallet(wallet: Wallet) {
-    this._provider = new AnchorProvider(this._connection, wallet, {
-      commitment: this._connection.commitment,
-    });
     this._metaplex = new Metaplex(this._connection).use(walletAdapterIdentity(wallet));
     this._bondProgram = new Program(BOND_IDL as Idl, this._bondProgramId, this._provider);
   }
