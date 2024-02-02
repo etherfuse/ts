@@ -92,7 +92,7 @@ export class Bond {
         collection: this.getCollectionAddress(collection.mint),
         mint: collection.mint,
         bondTokenAccount: userBondTokenAccount,
-        paymentAccount: this.getPaymentAccountAddress(collection.paymentMint),
+        paymentAccount: this.getPaymentAccountAddress(collection.mint),
         paymentTokenAccount: this.getPaymentAccountTokenAccountAddress(collection.mint, collection.paymentMint),
         paymentPriceFeed: collection.oracleParams.oracleAccount,
         ownerTokenAccount: userPaymentTokenAccount,
