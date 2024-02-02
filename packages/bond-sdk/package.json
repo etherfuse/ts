@@ -2,8 +2,8 @@
   "name": "@etherfuse/bond-sdk",
   "version": "0.0.18",
   "description": "The sdk to the etherfuse bond program",
-  "main": "dist/bond-sdk/index.js",
-  "types": "dist/bond-sdk/index.d.ts",
+  "main": "dist/bond-sdk/src/index.js",
+  "types": "dist/bond-sdk/src/index.d.ts",
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc -w"
