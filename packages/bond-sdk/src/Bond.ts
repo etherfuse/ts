@@ -15,6 +15,7 @@ import {
 import { BOND_IDL, IDL } from '@etherfuse/bond-idl';
 import { IdlCoder } from './utils/idlCoder';
 import { Collection, AssetInfo, AssetProof, TokenMetadata, BondNft, BondToken } from './models';
+import { getReadOnlyWallet } from './utils';
 import {
   SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
   SPL_NOOP_PROGRAM_ID,
@@ -28,25 +29,42 @@ import { Nft, Metaplex, walletAdapterIdentity } from '@metaplex-foundation/js';
 
 export class Bond {
   private readonly _connection: Connection;
-  private readonly _provider: Provider;
   private readonly _bondProgramId: PublicKey;
-  private readonly _metaplex: Metaplex;
-  private readonly accessPassCollection: PublicKey;
-  private readonly priorityFeeIx?: TransactionInstruction;
+  private readonly _accessPassCollection: PublicKey;
+  private readonly _priorityFeeIx?: TransactionInstruction;
+  private _provider: Provider;
   private _bondProgram: Program;
+  private _metaplex: Metaplex;
 
-  constructor(connection: Connection, wallet: Wallet, priorityFee?: number) {
+  constructor(
+    connection: Connection,
+    wallet?: Wallet,
+    priorityFee?: number,
+    bondProgramId?: PublicKey,
+    accessPassCollection?: PublicKey
+  ) {
     this._connection = connection;
+    if (!wallet) {
+      wallet = getReadOnlyWallet();
+    }
     this._provider = new AnchorProvider(connection, wallet, {
       commitment: connection.commitment,
     });
-    this._bondProgramId = new PublicKey('EfuseVF62VgpYmXroXkNww8qKCQudeHAEzczSAC7Xsir');
-    this.accessPassCollection = new PublicKey('FYCPa15hAFeDJ4CUNoMjGyQAkKPmzQ93uUaTyqae8tMN');
+    this._bondProgramId = bondProgramId || new PublicKey('EfuseVF62VgpYmXroXkNww8qKCQudeHAEzczSAC7Xsir');
+    this._accessPassCollection = accessPassCollection || new PublicKey('FYCPa15hAFeDJ4CUNoMjGyQAkKPmzQ93uUaTyqae8tMN');
     if (priorityFee) {
-      this.priorityFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
+      this._priorityFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
         microLamports: priorityFee,
       });
     }
+    this._metaplex = new Metaplex(this._connection).use(walletAdapterIdentity(wallet));
+    this._bondProgram = new Program(BOND_IDL as Idl, this._bondProgramId, this._provider);
+  }
+
+  async setWallet(wallet: Wallet) {
+    this._provider = new AnchorProvider(this._connection, wallet, {
+      commitment: this._connection.commitment,
+    });
     this._metaplex = new Metaplex(this._connection).use(walletAdapterIdentity(wallet));
     this._bondProgram = new Program(BOND_IDL as Idl, this._bondProgramId, this._provider);
   }
@@ -84,8 +102,8 @@ export class Bond {
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     });
-    if (this.priorityFeeIx) {
-      methodBuilder = methodBuilder.preInstructions([this.priorityFeeIx]);
+    if (this._priorityFeeIx) {
+      methodBuilder = methodBuilder.preInstructions([this._priorityFeeIx]);
     }
     return await methodBuilder.transaction();
   }
@@ -134,8 +152,8 @@ export class Bond {
         systemProgram: SystemProgram.programId,
       })
       .postInstructions(postInstructions);
-    if (this.priorityFeeIx) {
-      methodBuilder = methodBuilder.preInstructions([this.priorityFeeIx]);
+    if (this._priorityFeeIx) {
+      methodBuilder = methodBuilder.preInstructions([this._priorityFeeIx]);
     }
     return await methodBuilder.transaction();
   }
@@ -164,8 +182,8 @@ export class Bond {
       pass: this.getAccessPassAddress(wallet),
       tokenProgram: TOKEN_PROGRAM_ID,
     });
-    if (this.priorityFeeIx) {
-      methodBuilder = methodBuilder.preInstructions([this.priorityFeeIx]);
+    if (this._priorityFeeIx) {
+      methodBuilder = methodBuilder.preInstructions([this._priorityFeeIx]);
     }
     return await methodBuilder.transaction();
   }
@@ -195,8 +213,8 @@ export class Bond {
         pass: this.getAccessPassAddress(wallet),
         tokenProgram: TOKEN_PROGRAM_ID,
       });
-    if (this.priorityFeeIx) {
-      methodBuilder = methodBuilder.preInstructions([this.priorityFeeIx]);
+    if (this._priorityFeeIx) {
+      methodBuilder = methodBuilder.preInstructions([this._priorityFeeIx]);
     }
     return await methodBuilder.transaction();
   }
@@ -227,8 +245,8 @@ export class Bond {
       pass: this.getAccessPassAddress(wallet),
       tokenProgram: TOKEN_PROGRAM_ID,
     });
-    if (this.priorityFeeIx) {
-      methodBuilder = methodBuilder.preInstructions([this.priorityFeeIx]);
+    if (this._priorityFeeIx) {
+      methodBuilder = methodBuilder.preInstructions([this._priorityFeeIx]);
     }
     return await methodBuilder.transaction();
   }
@@ -291,8 +309,8 @@ export class Bond {
         bubblegumProgram: BUBBLEGUM_PROGRAM_ID,
       })
       .remainingAccounts(proofPath);
-    if (this.priorityFeeIx) {
-      methodBuilder = methodBuilder.preInstructions([this.priorityFeeIx]);
+    if (this._priorityFeeIx) {
+      methodBuilder = methodBuilder.preInstructions([this._priorityFeeIx]);
     }
     return await methodBuilder.transaction();
   }
@@ -446,7 +464,7 @@ export class Bond {
   }
 
   private async getCompressedAssetInfo(wallet: PublicKey): Promise<AssetInfo | null> {
-    return await this.searchAssets(wallet, this.accessPassCollection);
+    return await this.searchAssets(wallet, this._accessPassCollection);
   }
 
   private async getCompressedAssetProof(assetInfoId: string): Promise<AssetProof | null> {
