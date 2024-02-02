@@ -15,7 +15,7 @@ import {
 import { BOND_IDL, IDL } from '@etherfuse/bond-idl';
 import { IdlCoder } from './utils/idlCoder';
 import { Collection, AssetInfo, AssetProof, TokenMetadata, BondNft, BondToken } from './models';
-import { getReadOnlyWallet } from './utils';
+import { getReadOnlyWallet, replaceBigNumberWithDecimal } from './utils';
 import {
   SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
   SPL_NOOP_PROGRAM_ID,
@@ -31,18 +31,11 @@ export class Bond {
   private readonly _connection: Connection;
   private readonly _bondProgramId: PublicKey;
   private readonly _accessPassCollection: PublicKey;
-  private readonly _priorityFeeIx?: TransactionInstruction;
   private _provider: Provider;
   private _bondProgram: Program;
   private _metaplex: Metaplex;
 
-  constructor(
-    connection: Connection,
-    wallet?: Wallet,
-    priorityFee?: number,
-    bondProgramId?: PublicKey,
-    accessPassCollection?: PublicKey
-  ) {
+  constructor(connection: Connection, bondProgramId?: PublicKey, accessPassCollection?: PublicKey, wallet?: Wallet) {
     this._connection = connection;
     if (!wallet) {
       wallet = getReadOnlyWallet();
@@ -52,11 +45,6 @@ export class Bond {
     });
     this._bondProgramId = bondProgramId || new PublicKey('EfuseVF62VgpYmXroXkNww8qKCQudeHAEzczSAC7Xsir');
     this._accessPassCollection = accessPassCollection || new PublicKey('FYCPa15hAFeDJ4CUNoMjGyQAkKPmzQ93uUaTyqae8tMN');
-    if (priorityFee) {
-      this._priorityFeeIx = ComputeBudgetProgram.setComputeUnitPrice({
-        microLamports: priorityFee,
-      });
-    }
     this._metaplex = new Metaplex(this._connection).use(walletAdapterIdentity(wallet));
     this._bondProgram = new Program(BOND_IDL as Idl, this._bondProgramId, this._provider);
   }
@@ -70,8 +58,8 @@ export class Bond {
   }
 
   async getCollections(): Promise<Collection[]> {
-    const collections = (await this._bondProgram.account.collection.all()).map(
-      (collection) => collection.account
+    const collections = (await this._bondProgram.account.collection.all()).map((collection) =>
+      replaceBigNumberWithDecimal(collection.account)
     ) as Collection[];
     return collections;
   }
@@ -79,7 +67,7 @@ export class Bond {
   async getCollection(mint: PublicKey): Promise<Collection> {
     let address = this.getCollectionAddress(mint);
     const collection = (await this._bondProgram.account.collection.fetch(address)).account as Collection;
-    return collection;
+    return replaceBigNumberWithDecimal(collection);
   }
 
   async getReturnsOnCollection(amount: Decimal, collection: Collection): Promise<Decimal> {
@@ -109,9 +97,6 @@ export class Bond {
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     });
-    if (this._priorityFeeIx) {
-      methodBuilder = methodBuilder.preInstructions([this._priorityFeeIx]);
-    }
     return await methodBuilder.transaction();
   }
 
@@ -159,9 +144,6 @@ export class Bond {
         systemProgram: SystemProgram.programId,
       })
       .postInstructions(postInstructions);
-    if (this._priorityFeeIx) {
-      methodBuilder = methodBuilder.preInstructions([this._priorityFeeIx]);
-    }
     return await methodBuilder.transaction();
   }
 
@@ -189,9 +171,6 @@ export class Bond {
       pass: this.getAccessPassAddress(wallet),
       tokenProgram: TOKEN_PROGRAM_ID,
     });
-    if (this._priorityFeeIx) {
-      methodBuilder = methodBuilder.preInstructions([this._priorityFeeIx]);
-    }
     return await methodBuilder.transaction();
   }
 
@@ -220,9 +199,6 @@ export class Bond {
         pass: this.getAccessPassAddress(wallet),
         tokenProgram: TOKEN_PROGRAM_ID,
       });
-    if (this._priorityFeeIx) {
-      methodBuilder = methodBuilder.preInstructions([this._priorityFeeIx]);
-    }
     return await methodBuilder.transaction();
   }
 
@@ -252,9 +228,6 @@ export class Bond {
       pass: this.getAccessPassAddress(wallet),
       tokenProgram: TOKEN_PROGRAM_ID,
     });
-    if (this._priorityFeeIx) {
-      methodBuilder = methodBuilder.preInstructions([this._priorityFeeIx]);
-    }
     return await methodBuilder.transaction();
   }
 
@@ -316,9 +289,6 @@ export class Bond {
         bubblegumProgram: BUBBLEGUM_PROGRAM_ID,
       })
       .remainingAccounts(proofPath);
-    if (this._priorityFeeIx) {
-      methodBuilder = methodBuilder.preInstructions([this._priorityFeeIx]);
-    }
     return await methodBuilder.transaction();
   }
 
