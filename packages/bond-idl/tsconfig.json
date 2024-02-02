@@ -1,21 +1,17 @@
 {
+    "extends": "../../tsconfig.json",
     "compilerOptions": {
-        "target": "es2022",
-        "module": "commonjs",
-        "moduleResolution": "node",
-        "resolveJsonModule": true,
-        "declaration": true,
-        "strict": true,
-        "incremental": true,
-        "esModuleInterop": true,
+        "outDir": "dist",
+        "noImplicitAny": false,
         "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
-        "rootDir": "./src",
-        "outDir": "./dist",
-        "composite": true
+        "baseUrl": ".",
     },
     "include": [
         "src/**/*",
         "src/bond.json"
     ],
+    "exclude": [
+        "dist",
+        "tests"
+    ]
 }

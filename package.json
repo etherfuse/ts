@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "npx lerna run build",
+    "test": "npx ts-mocha 'packages/bond-sdk/tests/sdk.test.ts'",
     "format": "prettier --write '{**/*,*}.{js,ts,jsx,tsx}'",
     "format:check": "prettier --check '{**/*,*}.{js,ts,jsx,tsx}'"
   },
