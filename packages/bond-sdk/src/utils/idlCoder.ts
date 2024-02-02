@@ -132,18 +132,12 @@ export class IdlCoder {
           if (!f.hasOwnProperty('name')) {
             return IdlCoder.fieldLayout({ type: f as IdlType, name: i.toString() }, types);
           }
-          // this typescript conversion is ok
-          // because if f were of type IdlType
-          // (that does not have a name property)
-          // the check before would've errored
           return IdlCoder.fieldLayout(f as IdlField, types);
         });
         return borsh.struct(fieldLayouts, name);
       });
 
       if (name !== undefined) {
-        // Buffer-layout lib requires the name to be null (on construction)
-        // when used as a field.
         return borsh.rustEnum(variants).replicate(name);
       }
 
