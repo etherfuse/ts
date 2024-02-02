@@ -82,6 +82,13 @@ export class Bond {
     return collection;
   }
 
+  async getReturnsOnCollection(amount: Decimal, collection: Collection): Promise<Decimal> {
+    let couponAPY = amount.mul(collection.interestRate);
+    let daysToMaturity = Math.ceil((collection.maturityDate - collection.startDate) / (1000 * 60 * 60 * 24));
+    let couponReturns = couponAPY.div(365.25).mul(daysToMaturity);
+    return amount.add(couponReturns);
+  }
+
   async mintBond(amount: Decimal, wallet: PublicKey, collection: Collection): Promise<Transaction> {
     let userPaymentTokenAccount = await getAssociatedTokenAddress(collection.paymentMint, wallet);
     let userBondTokenAccount = await getAssociatedTokenAddress(collection.mint, wallet);
