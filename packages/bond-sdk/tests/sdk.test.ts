@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { clusterApiUrl, Connection, PublicKey } from '@solana/web3.js';
 import { Bond } from '../src/Bond';
 import { getReadOnlyWallet } from '../src/utils';
+import { DEVNET_ACCESS_PASS_COLLECTION_ID, DEVNET_BOND_PROGRAM_ID } from '../src/constants';
 
 describe('Bond SDK', () => {
   let connection: Connection;
@@ -14,8 +15,8 @@ describe('Bond SDK', () => {
     let bond = new Bond(
       connection,
       getReadOnlyWallet(),
-      new PublicKey('E1UhfWQYVQP8BfNcNMuPM3j2fypxU6o8JsCkAmcSy1Ui'),
-      new PublicKey('H7HAVkjcxNYcSDF8r2R43AypAobMGbZ5x9SYkyv8pqxk')
+      new PublicKey(DEVNET_BOND_PROGRAM_ID),
+      new PublicKey(DEVNET_ACCESS_PASS_COLLECTION_ID)
     );
     let collections = await bond.getCollections();
     expect(collections).to.not.be.empty;

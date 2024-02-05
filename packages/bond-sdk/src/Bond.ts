@@ -31,6 +31,7 @@ import { PROGRAM_ID as BUBBLEGUM_PROGRAM_ID } from '@metaplex-foundation/mpl-bub
 import Decimal from 'decimal.js';
 import { PROGRAM_ID as TOKEN_METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata';
 import { Nft, Metaplex, walletAdapterIdentity } from '@metaplex-foundation/js';
+import { MAINNET_ACCESS_PASS_COLLECTION_ID, MAINNET_BOND_PROGRAM_ID } from './constants';
 
 export class Bond {
   private readonly _connection: Connection;
@@ -45,8 +46,8 @@ export class Bond {
     this._provider = new AnchorProvider(connection, wallet, {
       commitment: connection.commitment,
     });
-    this._bondProgramId = bondProgramId || new PublicKey('EfuseVF62VgpYmXroXkNww8qKCQudeHAEzczSAC7Xsir');
-    this._accessPassCollection = accessPassCollection || new PublicKey('FYCPa15hAFeDJ4CUNoMjGyQAkKPmzQ93uUaTyqae8tMN');
+    this._bondProgramId = bondProgramId || new PublicKey(MAINNET_BOND_PROGRAM_ID);
+    this._accessPassCollection = accessPassCollection || new PublicKey(MAINNET_ACCESS_PASS_COLLECTION_ID);
     this._metaplex = new Metaplex(this._connection).use(walletAdapterIdentity(wallet));
     this._bondProgram = new Program(BOND_IDL as Idl, this._bondProgramId, this._provider);
   }
