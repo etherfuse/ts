@@ -163,12 +163,12 @@ export class Bond {
     return await methodBuilder.transaction();
   }
 
-  async collectInterest(collectionMint: PublicKey): Promise<Transaction> {
+  async collectCouponForNft(nftMint: PublicKey, collectionMint: PublicKey): Promise<Transaction> {
     let collection = await this.getCollection(collectionMint);
     let wallet = this._provider.publicKey!;
-    let userNftTokenAccount = getAssociatedTokenAddressSync(collection.nftMint, wallet);
+    let userNftTokenAccount = getAssociatedTokenAddressSync(nftMint, wallet);
     let userPaymentTokenAccount = getAssociatedTokenAddressSync(collection.paymentMint, wallet);
-    let nftAddress = this.getNftAddress(collection.nftMint);
+    let nftAddress = this.getNftAddress(nftMint);
     let nftBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, nftAddress, true);
     let userHasPaymentTokenAccount = await this.checkIfAccountExists(userPaymentTokenAccount);
     let preInstructions: TransactionInstruction[] = [];
@@ -190,7 +190,7 @@ export class Bond {
         ownerPaymentTokenAccount: userPaymentTokenAccount,
         pdaBondTokenAccount: nftBondTokenAccount,
         nft: nftAddress,
-        nftMint: collection.nftMint,
+        nftMint: nftMint,
         interest: this.getInterestAccountAddress(collection.mint),
         interestPaymentTokenAccount: this.getInterestAccountTokenAccountAddress(
           collection.mint,
