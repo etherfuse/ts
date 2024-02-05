@@ -15,7 +15,6 @@ import {
 import { BOND_IDL, IDL } from '@etherfuse/bond-idl';
 import { IdlCoder } from './utils/idlCoder';
 import { Collection, AssetInfo, AssetProof, TokenMetadata, BondToken } from './models';
-import { replaceBigNumberWithDecimal } from './utils';
 import {
   SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
   SPL_NOOP_PROGRAM_ID,
@@ -64,7 +63,7 @@ export class Bond {
    */
   async getCollections(): Promise<Collection[]> {
     const collections = (await this._bondProgram.account.collection.all()).map((collection) =>
-      replaceBigNumberWithDecimal(collection.account)
+      this.replaceBigNumberWithDecimal(collection.account)
     ) as Collection[];
     return collections;
   }
@@ -77,7 +76,7 @@ export class Bond {
   async getCollection(mint: PublicKey): Promise<Collection> {
     let address = this.getCollectionAddress(mint);
     const collection = (await this._bondProgram.account.collection.fetch(address)) as Collection;
-    return replaceBigNumberWithDecimal(collection);
+    return this.replaceBigNumberWithDecimal(collection);
   }
 
   /**
@@ -780,6 +779,16 @@ export class Bond {
       throw new Error(`No Logs Found `);
     }
   }
+
+  private replaceBigNumberWithDecimal = <T>(obj: T): T => {
+    for (let [key, value] of Object.entries(obj!)) {
+      if (value instanceof BN) {
+        // @ts-ignore
+        obj[key] = new Decimal(value.toString());
+      }
+    }
+    return obj;
+  };
 }
 
 interface ViewReturnsOutput {
