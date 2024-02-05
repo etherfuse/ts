@@ -379,6 +379,7 @@ export class Bond {
           let imageUrl = await this.fetchImageFromURI(collection.nftUri);
           let bondNft: BondToken = {
             mint: nftMint,
+            collectionMint: collection.mint,
             isNft: true,
             description: collection.description,
             interestRate: new Decimal(collection.interestRate),
@@ -403,6 +404,7 @@ export class Bond {
           let imageUrl = await this.fetchImageFromURI(c.tokenUri);
           let bondToken: BondToken = {
             mint: c.mint,
+            collectionMint: c.mint,
             isNft: false,
             description: c.description,
             interestRate: new Decimal(c.interestRate),
