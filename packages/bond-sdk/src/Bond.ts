@@ -1,5 +1,6 @@
-import { AnchorProvider, Program, Provider, Wallet, Idl, BN } from '@coral-xyz/anchor';
+import { AnchorProvider, Program, Provider, Idl, BN } from '@coral-xyz/anchor';
 import { decode } from '@coral-xyz/anchor/dist/cjs/utils/bytes/base64';
+import { Wallet } from '@coral-xyz/anchor/dist/cjs/provider';
 import {
   Connection,
   PublicKey,
