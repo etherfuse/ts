@@ -506,6 +506,23 @@ export class Bond {
     return await this.checkIfAccountExists(accessPassAddress);
   }
 
+  /**
+   * Check if an access pass is in the wallet
+   * @returns A promise resolved with a boolean
+   */
+  async accessPassIsInWallet(): Promise<boolean> {
+    let wallet = this._provider.publicKey!;
+    let assetInfo = await this.getCompressedAssetInfo(wallet);
+    if (!assetInfo) {
+      return false;
+    }
+    let assetProof = await this.getCompressedAssetProof(assetInfo.id);
+    if (!assetProof) {
+      return false;
+    }
+    return true;
+  }
+
   private async viewParValueReturns(amount: Decimal, collectionMint: PublicKey): Promise<Decimal> {
     let collection = await this.getCollection(collectionMint);
     let tokenAmount = this.UiToTokenAmount(amount, collection.paymentDecimals);
