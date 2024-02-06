@@ -11,13 +11,3 @@ export const getReadOnlyWallet = (): Wallet => {
     signTransaction: async (txs) => txs,
   };
 };
-
-export const replaceBigNumberWithDecimal = <T>(obj: T): T => {
-  for (let [key, value] of Object.entries(obj!)) {
-    if (value instanceof BN) {
-      // @ts-ignore
-      obj[key] = new Decimal(value.toString());
-    }
-  }
-  return obj;
-};

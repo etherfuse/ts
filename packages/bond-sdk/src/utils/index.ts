@@ -1,2 +1,2 @@
-export * from './anchorUtils';
+export * from './anchor';
 export * from './idlCoder';

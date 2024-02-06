@@ -15,7 +15,6 @@ import {
 import { BOND_IDL, IDL } from '@etherfuse/bond-idl';
 import { IdlCoder } from './utils/idlCoder';
 import { Collection, AssetInfo, AssetProof, TokenMetadata, BondToken } from './models';
-import { replaceBigNumberWithDecimal } from './utils';
 import {
   SPL_ACCOUNT_COMPRESSION_PROGRAM_ID,
   SPL_NOOP_PROGRAM_ID,
@@ -41,6 +40,13 @@ export class Bond {
   private _bondProgram: Program;
   private _metaplex: Metaplex;
 
+  /**
+   * Creates an instance of the Bond SDK Class
+   * @param connection The connection to the solana network
+   * @param wallet The wallet from solana wallet base
+   * @param bondProgramId The bond program id. defaults to mainnet if not provided
+   * @param accessPassCollection The access pass collection id. defaults to mainnet if not provided
+   */
   constructor(connection: Connection, wallet: Wallet, bondProgramId?: PublicKey, accessPassCollection?: PublicKey) {
     this._connection = connection;
     this._provider = new AnchorProvider(connection, wallet, {
@@ -51,20 +57,34 @@ export class Bond {
     this._metaplex = new Metaplex(this._connection).use(walletAdapterIdentity(wallet));
     this._bondProgram = new Program(BOND_IDL as Idl, this._bondProgramId, this._provider);
   }
-
+  /**
+   * Returns all collections on the bond program
+   * @returns A promise resolved with an array of collections
+   */
   async getCollections(): Promise<Collection[]> {
     const collections = (await this._bondProgram.account.collection.all()).map((collection) =>
-      replaceBigNumberWithDecimal(collection.account)
+      this.replaceBigNumberWithDecimal(collection.account)
     ) as Collection[];
     return collections;
   }
 
+  /**
+   * Returns a single collection
+   * @param mint The mint of the collection
+   * @returns A promise resolved with the collection
+   */
   async getCollection(mint: PublicKey): Promise<Collection> {
     let address = this.getCollectionAddress(mint);
     const collection = (await this._bondProgram.account.collection.fetch(address)) as Collection;
-    return replaceBigNumberWithDecimal(collection);
+    return this.replaceBigNumberWithDecimal(collection);
   }
 
+  /**
+   * Get the returns on a bond
+   * @param amount The amount of bonds
+   * @param collection The collection of the bond
+   * @returns A promise resolved with the returns
+   */
   async getReturnsOnCollection(
     amount: Decimal,
     collection: Pick<Collection, 'startDate' | 'interestRate' | 'maturityDate'>
@@ -75,6 +95,12 @@ export class Bond {
     return amount.add(couponReturns);
   }
 
+  /**
+   * Mint a bond token
+   * @param amount UI amount of bonds that the user wants to mint
+   * @param collectionMint The mint of the collection
+   * @returns A promise resolved transaction that the user can submit
+   */
   async mintBond(amount: Decimal, collectionMint: PublicKey): Promise<Transaction> {
     let collection = await this.getCollection(collectionMint);
     let wallet = this._provider.publicKey!;
@@ -109,7 +135,15 @@ export class Bond {
     return await methodBuilder.transaction();
   }
 
-  async exchangeTokensForNFT(collectionMint: PublicKey, amount?: Decimal): Promise<Transaction> {
+  /**
+   * Exchange your bond tokens for an NFT that represents the bonds stored in the program
+   * This will allow the user to maintain state and collect interest on their bonds
+   * @param collectionMint The mint of the collection
+   * @param nftMint The mint of NFT. The callee will need to pass in a newly generated Keypair and include this as the signer in the transaction
+   * @param amount UI amount of bonds that the user wants to exchange
+   * @returns A promise resolved transaction that the user can submit
+   */
+  async exchangeTokensForNFT(collectionMint: PublicKey, nftMint: PublicKey, amount?: Decimal): Promise<Transaction> {
     let collection = await this.getCollection(collectionMint);
     let wallet = this._provider.publicKey!;
     if (!amount) {
@@ -118,10 +152,9 @@ export class Bond {
       amount = balance;
     }
     let userBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, wallet);
-    let nftMint = Keypair.generate();
-    let nftAddress = this.getNftAddress(nftMint.publicKey);
+    let nftAddress = this.getNftAddress(nftMint);
     let nftBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, nftAddress, true);
-    let ownerNftTokenAccount = getAssociatedTokenAddressSync(nftMint.publicKey, wallet);
+    let ownerNftTokenAccount = getAssociatedTokenAddressSync(nftMint, wallet);
     let setNftInstruction = await this._bondProgram.methods
       .setNft({})
       .accounts({
@@ -129,11 +162,11 @@ export class Bond {
         collection: this.getCollectionAddress(collection.mint),
         nft: nftAddress,
         ownerNftTokenAccount: ownerNftTokenAccount,
-        nftMint: nftMint.publicKey,
+        nftMint: nftMint,
         collectionNftMint: collection.nftMint,
         kyc: this.getKycAddress(wallet),
-        metadata: this.getMetadataAddress(nftMint.publicKey),
-        masterEdition: this.getMasterEditionAddress(nftMint.publicKey),
+        metadata: this.getMetadataAddress(nftMint),
+        masterEdition: this.getMasterEditionAddress(nftMint),
         collectionMetadata: this.getMetadataAddress(collection.nftMint),
         collectionMasterEdition: this.getMasterEditionAddress(collection.nftMint),
         tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
@@ -163,6 +196,12 @@ export class Bond {
     return await methodBuilder.transaction();
   }
 
+  /**
+   * Collect the coupon for the NFT that represents the bonds stored in the program
+   * @param nftMint The mint of the NFT that represents the bonds
+   * @param collectionMint The mint of the collection
+   * @returns A promise resolved transaction that the user can submit
+   */
   async collectCouponForNft(nftMint: PublicKey, collectionMint: PublicKey): Promise<Transaction> {
     let collection = await this.getCollection(collectionMint);
     let wallet = this._provider.publicKey!;
@@ -206,6 +245,13 @@ export class Bond {
     return await methodBuilder.transaction();
   }
 
+  /**
+   * Collect the par value for the bonds stored in the program
+   * This will include both the coupon and the par value and will burn the bonds provided
+   * @param collectionMint The mint of the collection
+   * @param amount UI amount of bonds that the user wants to collect
+   * @returns A promise resolved transaction that the user can submit
+   */
   async collectParValue(collectionMint: PublicKey, amount?: Decimal): Promise<Transaction> {
     let collection = await this.getCollection(collectionMint);
     let wallet = this._provider.publicKey!;
@@ -252,6 +298,13 @@ export class Bond {
     return await methodBuilder.transaction();
   }
 
+  /**
+   * Collect the par value for the NFT that represents the bonds stored in the program
+   * This will include both the coupon and the par value and will burn the bonds provided
+   * @param nftMint The mint of the NFT that represents the bonds
+   * @param collectionMint The mint of the collection
+   * @returns A promise resolved transaction that the user can submit
+   */
   async collectParValueForNft(nftMint: PublicKey, collectionMint: PublicKey): Promise<Transaction> {
     let collection = await this.getCollection(collectionMint);
     let wallet = this._provider.publicKey!;
@@ -297,6 +350,11 @@ export class Bond {
     return await methodBuilder.transaction();
   }
 
+  /**
+   * Burn the access pass on chain to signal the user has received a pass
+   * This is a one time operation
+   * @returns A promise resolved with the transaction
+   */
   async burnAccessPass(): Promise<Transaction> {
     let wallet = this._provider.publicKey!;
     let assetInfo = await this.getCompressedAssetInfo(wallet);
@@ -359,6 +417,11 @@ export class Bond {
     return await methodBuilder.transaction();
   }
 
+  /**
+   * Get all the bond tokens that the user has
+   * A bond token can either be an spl token or an nft that the bond program has issued
+   * @returns A promise resolved with an array of bond tokens and their details
+   */
   async getUserBonds(): Promise<BondToken[]> {
     let collections: Collection[] = await this.getCollections();
     let wallet = this._provider.publicKey!;
@@ -423,16 +486,41 @@ export class Bond {
     return bondTokenModels;
   }
 
+  /**
+   * Check if an kyc account exists on chain for the wallet
+   * @returns A promise resolved with a boolean
+   */
   async kycIsDone(): Promise<boolean> {
     let wallet = this._provider.publicKey!;
     let kycAddress = this.getKycAddress(wallet);
     return await this.checkIfAccountExists(kycAddress);
   }
 
+  /**
+   * Check if an access pass account exists on chain for the wallet
+   * @returns A promise resolved with a boolean
+   */
   async accessPassIsDone(): Promise<boolean> {
     let wallet = this._provider.publicKey!;
     let accessPassAddress = this.getAccessPassAddress(wallet);
     return await this.checkIfAccountExists(accessPassAddress);
+  }
+
+  /**
+   * Check if an access pass is in the wallet
+   * @returns A promise resolved with a boolean
+   */
+  async accessPassIsInWallet(): Promise<boolean> {
+    let wallet = this._provider.publicKey!;
+    let assetInfo = await this.getCompressedAssetInfo(wallet);
+    if (!assetInfo) {
+      return false;
+    }
+    let assetProof = await this.getCompressedAssetProof(assetInfo.id);
+    if (!assetProof) {
+      return false;
+    }
+    return true;
   }
 
   private async viewParValueReturns(amount: Decimal, collectionMint: PublicKey): Promise<Decimal> {
@@ -708,6 +796,16 @@ export class Bond {
       throw new Error(`No Logs Found `);
     }
   }
+
+  private replaceBigNumberWithDecimal = <T>(obj: T): T => {
+    for (let [key, value] of Object.entries(obj!)) {
+      if (value instanceof BN) {
+        // @ts-ignore
+        obj[key] = new Decimal(value.toString());
+      }
+    }
+    return obj;
+  };
 }
 
 interface ViewReturnsOutput {
