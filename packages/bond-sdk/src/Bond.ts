@@ -139,10 +139,11 @@ export class Bond {
    * Exchange your bond tokens for an NFT that represents the bonds stored in the program
    * This will allow the user to maintain state and collect interest on their bonds
    * @param collectionMint The mint of the collection
+   * @param nftMint The mint of NFT. The callee will need to pass in a newly generated Keypair and include this as the signer in the transaction
    * @param amount UI amount of bonds that the user wants to exchange
    * @returns A promise resolved transaction that the user can submit
    */
-  async exchangeTokensForNFT(collectionMint: PublicKey, amount?: Decimal): Promise<Transaction> {
+  async exchangeTokensForNFT(collectionMint: PublicKey, nftMint: PublicKey, amount?: Decimal): Promise<Transaction> {
     let collection = await this.getCollection(collectionMint);
     let wallet = this._provider.publicKey!;
     if (!amount) {
@@ -151,10 +152,9 @@ export class Bond {
       amount = balance;
     }
     let userBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, wallet);
-    let nftMint = Keypair.generate();
-    let nftAddress = this.getNftAddress(nftMint.publicKey);
+    let nftAddress = this.getNftAddress(nftMint);
     let nftBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, nftAddress, true);
-    let ownerNftTokenAccount = getAssociatedTokenAddressSync(nftMint.publicKey, wallet);
+    let ownerNftTokenAccount = getAssociatedTokenAddressSync(nftMint, wallet);
     let setNftInstruction = await this._bondProgram.methods
       .setNft({})
       .accounts({
@@ -162,11 +162,11 @@ export class Bond {
         collection: this.getCollectionAddress(collection.mint),
         nft: nftAddress,
         ownerNftTokenAccount: ownerNftTokenAccount,
-        nftMint: nftMint.publicKey,
+        nftMint: nftMint,
         collectionNftMint: collection.nftMint,
         kyc: this.getKycAddress(wallet),
-        metadata: this.getMetadataAddress(nftMint.publicKey),
-        masterEdition: this.getMasterEditionAddress(nftMint.publicKey),
+        metadata: this.getMetadataAddress(nftMint),
+        masterEdition: this.getMasterEditionAddress(nftMint),
         collectionMetadata: this.getMetadataAddress(collection.nftMint),
         collectionMasterEdition: this.getMasterEditionAddress(collection.nftMint),
         tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
