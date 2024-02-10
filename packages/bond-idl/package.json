@@ -1,6 +1,6 @@
 {
   "name": "@etherfuse/bond-idl",
-  "version": "0.0.32",
+  "version": "0.0.33",
   "description": "The package containing some utility functions",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
