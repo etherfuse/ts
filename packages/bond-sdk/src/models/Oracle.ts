@@ -1,22 +1,7 @@
-import { PublicKey } from '@solana/web3.js';
-import Decimal from 'decimal.js';
+import { IdlAccounts, Program } from '@coral-xyz/anchor';
+import { Bond } from '@etherfuse/bond-idl';
 
-export enum OracleType {
-  None,
-  Test,
-  Pyth,
-}
+export type OracleParams = IdlAccounts<Bond>['collection']['oracleParams'];
 
-export type OraclePrice = {
-  price: Decimal;
-  exponent: number;
-};
-
-export type OracleParams = {
-  oracleAccount: PublicKey;
-  oracleType: OracleType;
-  maxPriceError: Decimal;
-  maxPriceAgeSec: Decimal;
-};
 
 export default OracleParams;

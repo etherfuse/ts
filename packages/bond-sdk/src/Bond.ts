@@ -1,4 +1,4 @@
-import { AnchorProvider, Program, Provider, Idl, BN } from '@coral-xyz/anchor';
+import { AnchorProvider, Program, Provider, BN, IdlAccounts } from '@coral-xyz/anchor';
 import { decode } from '@coral-xyz/anchor/dist/cjs/utils/bytes/base64';
 import { Wallet } from '@coral-xyz/anchor/dist/cjs/provider';
 import {
@@ -7,12 +7,11 @@ import {
   AccountMeta,
   Transaction,
   SystemProgram,
-  Keypair,
   TransactionInstruction,
   RpcResponseAndContext,
   SimulatedTransactionResponse,
 } from '@solana/web3.js';
-import { BOND_IDL, IDL } from '@etherfuse/bond-idl';
+import { BOND_IDL, IDL, Bond as BondType } from '@etherfuse/bond-idl';
 import { IdlCoder } from './utils/idlCoder';
 import { Collection, AssetInfo, AssetProof, TokenMetadata, BondToken } from './models';
 import {
@@ -30,14 +29,14 @@ import { PROGRAM_ID as BUBBLEGUM_PROGRAM_ID } from '@metaplex-foundation/mpl-bub
 import Decimal from 'decimal.js';
 import { PROGRAM_ID as TOKEN_METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata';
 import { Nft, Metaplex, walletAdapterIdentity } from '@metaplex-foundation/js';
-import { MAINNET_ACCESS_PASS_COLLECTION_ID, MAINNET_BOND_PROGRAM_ID } from './constants';
+import { BOND_DECIMALS_UI, MAINNET_ACCESS_PASS_COLLECTION_ID, MAINNET_BOND_PROGRAM_ID } from './constants';
 
 export class Bond {
   private readonly _connection: Connection;
   private readonly _bondProgramId: PublicKey;
   private readonly _accessPassCollection: PublicKey;
   private readonly _provider: Provider;
-  private _bondProgram: Program;
+  private _bondProgram: Program<BondType>;
   private _metaplex: Metaplex;
 
   /**
@@ -48,23 +47,24 @@ export class Bond {
    * @param accessPassCollection The access pass collection id. defaults to mainnet if not provided
    */
   constructor(connection: Connection, wallet: Wallet, bondProgramId?: PublicKey, accessPassCollection?: PublicKey) {
-    this._connection = connection;
+    this._connection = new Connection(connection.rpcEndpoint, connection.commitment);
+
     this._provider = new AnchorProvider(connection, wallet, {
       commitment: connection.commitment,
     });
     this._bondProgramId = bondProgramId || new PublicKey(MAINNET_BOND_PROGRAM_ID);
     this._accessPassCollection = accessPassCollection || new PublicKey(MAINNET_ACCESS_PASS_COLLECTION_ID);
     this._metaplex = new Metaplex(this._connection).use(walletAdapterIdentity(wallet));
-    this._bondProgram = new Program(BOND_IDL as Idl, this._bondProgramId, this._provider);
+    this._bondProgram = new Program(IDL, this._bondProgramId, this._provider);
   }
   /**
    * Returns all collections on the bond program
    * @returns A promise resolved with an array of collections
    */
   async getCollections(): Promise<Collection[]> {
-    const collections = (await this._bondProgram.account.collection.all()).map((collection) =>
-      this.replaceBigNumberWithDecimal(collection.account)
-    ) as Collection[];
+    const collections = (await this._bondProgram.account.collection.all())
+      .filter(({account}) => !account.isFrozen)
+      .map(({account}) => this.mapToCollection(account));
     return collections;
   }
 
@@ -75,8 +75,8 @@ export class Bond {
    */
   async getCollection(mint: PublicKey): Promise<Collection> {
     let address = this.getCollectionAddress(mint);
-    const collection = (await this._bondProgram.account.collection.fetch(address)) as Collection;
-    return this.replaceBigNumberWithDecimal(collection);
+    const collection = (await this._bondProgram.account.collection.fetch(address));
+    return this.mapToCollection(collection);
   }
 
   /**
@@ -90,7 +90,7 @@ export class Bond {
     collection: Pick<Collection, 'startDate' | 'interestRate' | 'maturityDate'>
   ): Promise<Decimal> {
     let couponAPY = amount.mul(collection.interestRate);
-    let daysToMaturity = Math.ceil((collection.maturityDate - collection.startDate) / (1000 * 60 * 60 * 24));
+    let daysToMaturity = Math.ceil((collection.maturityDate.valueOf() - collection.startDate.valueOf()) / (1000 * 60 * 60 * 24));
     let couponReturns = couponAPY.div(365.25).mul(daysToMaturity);
     return amount.add(couponReturns);
   }
@@ -107,7 +107,7 @@ export class Bond {
     let userPaymentTokenAccount = getAssociatedTokenAddressSync(collection.paymentMint, wallet);
     let userBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, wallet);
     let userHasBondTokenAccount = await this.checkIfAccountExists(userBondTokenAccount);
-    let tokenAmount = this.UiToTokenAmount(amount, collection.paymentDecimals);
+    let tokenAmount = this.UiToTokenAmount(amount, BOND_DECIMALS_UI);
     let preInstructions: TransactionInstruction[] = [];
     if (!userHasBondTokenAccount) {
       let ataIx = createAssociatedTokenAccountInstruction(wallet, userBondTokenAccount, wallet, collection.mint);
@@ -171,14 +171,14 @@ export class Bond {
         collectionMasterEdition: this.getMasterEditionAddress(collection.nftMint),
         tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
         tokenProgram: TOKEN_PROGRAM_ID,
-        SystemProgram: SystemProgram.programId,
+        systemProgram: SystemProgram.programId,
       })
       .instruction();
     let postInstructions: TransactionInstruction[] = [];
     postInstructions.push(setNftInstruction);
-    let tokenAmount = this.UiToTokenAmount(amount, collection.paymentDecimals);
+    let tokenAmount = this.UiToTokenAmount(amount, BOND_DECIMALS_UI);
     let methodBuilder = this._bondProgram.methods
-      .exchangeTokensForNFT({ amount: tokenAmount })
+      .exchangeTokensForNft({ amount: tokenAmount })
       .accounts({
         owner: wallet,
         collection: this.getCollectionAddress(collection.mint),
@@ -221,7 +221,7 @@ export class Bond {
       preInstructions.push(ataIx);
     }
     let methodBuilder = this._bondProgram.methods
-      .collectInterest({})
+      .collectCoupon({})
       .accounts({
         owner: wallet,
         collection: this.getCollectionAddress(collection.mint),
@@ -262,7 +262,7 @@ export class Bond {
     }
     let userPaymentTokenAccount = getAssociatedTokenAddressSync(collection.paymentMint, wallet);
     let userBondtokenAccount = getAssociatedTokenAddressSync(collection.mint, wallet);
-    let tokenAmount = this.UiToTokenAmount(amount, collection.paymentDecimals);
+    let tokenAmount = this.UiToTokenAmount(amount, BOND_DECIMALS_UI);
     let userHasPaymentTokenAccount = await this.checkIfAccountExists(userPaymentTokenAccount);
     let preInstructions: TransactionInstruction[] = [];
     if (!userHasPaymentTokenAccount) {
@@ -525,7 +525,7 @@ export class Bond {
 
   private async viewParValueReturns(amount: Decimal, collectionMint: PublicKey): Promise<Decimal> {
     let collection = await this.getCollection(collectionMint);
-    let tokenAmount = this.UiToTokenAmount(amount, collection.paymentDecimals);
+    let tokenAmount = this.UiToTokenAmount(amount, BOND_DECIMALS_UI);
     const methodBuilder = this._bondProgram.methods.viewParValueReturns({ amount: tokenAmount }).accounts({
       collection: this.getCollectionAddress(collection.mint),
       parValue: this.getParValueAccountAddress(collection.mint),
@@ -544,7 +544,7 @@ export class Bond {
     let collection = await this.getCollection(collectionMint);
     let nftAddress = this.getNftAddress(nftMint);
     let nftPdaBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, nftAddress, true);
-    const methodBuilder = this._bondProgram.methods.viewParValueReturnsForNft().accounts({
+    const methodBuilder = this._bondProgram.methods.viewParValueForNftReturns({}).accounts({
       collection: collection.mint,
       pdaBondTokenAccount: nftPdaBondTokenAccount,
       nft: nftAddress,
@@ -563,7 +563,7 @@ export class Bond {
 
   private async viewCouponReturns(amount: Decimal, collectionMint: PublicKey): Promise<Decimal> {
     let collection = await this.getCollection(collectionMint);
-    let tokenAmount = this.UiToTokenAmount(amount, collection.paymentDecimals);
+    let tokenAmount = this.UiToTokenAmount(amount, BOND_DECIMALS_UI);
     const methodBuilder = this._bondProgram.methods.viewCouponReturns({ amount: tokenAmount }).accounts({
       collection: this.getCollectionAddress(collection.mint),
       interest: this.getInterestAccountAddress(collection.mint),
@@ -582,7 +582,7 @@ export class Bond {
     let collection = await this.getCollection(collectionMint);
     let nftAddress = this.getNftAddress(nftMint);
     let nftPdaBondTokenAccount = getAssociatedTokenAddressSync(collection.mint, nftAddress, true);
-    const methodBuilder = this._bondProgram.methods.viewCouponReturnsForNft().accounts({
+    const methodBuilder = this._bondProgram.methods.viewCouponReturnsForNft({}).accounts({
       collection: collection.mint,
       pdaBondTokenAccount: nftPdaBondTokenAccount,
       nft: nftAddress,
@@ -781,7 +781,6 @@ export class Bond {
         throw new Error('View expected return log');
       }
       let returnData = decode(returnLog.slice(returnPrefix.length));
-      // @ts-ignore
       let returnType = BOND_IDL.instructions[instructionNumber].returns;
 
       if (!returnType) {
@@ -797,17 +796,26 @@ export class Bond {
     }
   }
 
-  private replaceBigNumberWithDecimal = <T>(obj: T): T => {
-    for (let [key, value] of Object.entries(obj!)) {
-      if (value instanceof BN) {
-        // @ts-ignore
-        obj[key] = new Decimal(value.toString());
-      }
-    }
-    return obj;
+  private mapToCollection(pre: CollectionIndividual): Collection {
+    const collection = {
+    ...pre,
+    paymentUsdCost: new Decimal(pre.paymentUsdCost.toString()),
+    interestRate: new Decimal(pre.interestRate.toString()),
+    startDate: toDate(pre.startDate),
+    maturityDate: toDate(pre.maturityDate),
+    fundingDate: toDate(pre.fundingDate),
+    supply: pre.supply.toNumber(),
+    totalBondsMinted: pre.totalBondsMinted.toNumber()/(10 ** BOND_DECIMALS_UI),
   };
+  return collection;
+};
 }
 
+function toDate(date: BN) {
+  return new Date(date.toNumber() * 1000)
+}
+
+type CollectionIndividual = IdlAccounts<BondType>['collection']
 interface ViewReturnsOutput {
   amount: BN;
 }
