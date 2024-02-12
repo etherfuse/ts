@@ -242,6 +242,7 @@ export class Bond {
         kyc: this.getKycAddress(wallet),
         pass: this.getAccessPassAddress(wallet),
         tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
       })
       .preInstructions(preInstructions);
     return await methodBuilder.transaction();
@@ -295,6 +296,7 @@ export class Bond {
         kyc: this.getKycAddress(wallet),
         pass: this.getAccessPassAddress(wallet),
         tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
       })
       .preInstructions(preInstructions);
     return await methodBuilder.transaction();
@@ -347,6 +349,7 @@ export class Bond {
         kyc: this.getKycAddress(wallet),
         pass: this.getAccessPassAddress(wallet),
         tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
       })
       .preInstructions(preInstructions);
     return await methodBuilder.transaction();
