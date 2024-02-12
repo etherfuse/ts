@@ -354,6 +354,11 @@ export type Bond = {
           isMut: false;
           isSigner: false;
         },
+        {
+          name: 'systemProgram';
+          isMut: false;
+          isSigner: false;
+        },
       ];
       args: [
         {
@@ -438,6 +443,11 @@ export type Bond = {
         },
         {
           name: 'tokenProgram';
+          isMut: false;
+          isSigner: false;
+        },
+        {
+          name: 'systemProgram';
           isMut: false;
           isSigner: false;
         },
@@ -544,6 +554,11 @@ export type Bond = {
         },
         {
           name: 'tokenProgram';
+          isMut: false;
+          isSigner: false;
+        },
+        {
+          name: 'systemProgram';
           isMut: false;
           isSigner: false;
         },
@@ -1908,6 +1923,11 @@ export const IDL: Bond = {
           isMut: false,
           isSigner: false,
         },
+        {
+          name: 'systemProgram',
+          isMut: false,
+          isSigner: false,
+        },
       ],
       args: [
         {
@@ -1992,6 +2012,11 @@ export const IDL: Bond = {
         },
         {
           name: 'tokenProgram',
+          isMut: false,
+          isSigner: false,
+        },
+        {
+          name: 'systemProgram',
           isMut: false,
           isSigner: false,
         },
@@ -2098,6 +2123,11 @@ export const IDL: Bond = {
         },
         {
           name: 'tokenProgram',
+          isMut: false,
+          isSigner: false,
+        },
+        {
+          name: 'systemProgram',
           isMut: false,
           isSigner: false,
         },
