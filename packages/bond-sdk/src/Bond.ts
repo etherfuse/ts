@@ -63,8 +63,8 @@ export class Bond {
    */
   async getCollections(): Promise<Collection[]> {
     const collections = (await this._bondProgram.account.collection.all())
-      .filter(({account}) => !account.isFrozen)
-      .map(({account}) => this.mapToCollection(account));
+      .filter(({ account }) => !account.isFrozen)
+      .map(({ account }) => this.mapToCollection(account));
     return collections;
   }
 
@@ -75,7 +75,7 @@ export class Bond {
    */
   async getCollection(mint: PublicKey): Promise<Collection> {
     let address = this.getCollectionAddress(mint);
-    const collection = (await this._bondProgram.account.collection.fetch(address));
+    const collection = await this._bondProgram.account.collection.fetch(address);
     return this.mapToCollection(collection);
   }
 
@@ -90,7 +90,9 @@ export class Bond {
     collection: Pick<Collection, 'startDate' | 'interestRate' | 'maturityDate'>
   ): Promise<Decimal> {
     let couponAPY = amount.mul(collection.interestRate);
-    let daysToMaturity = Math.ceil((collection.maturityDate.valueOf() - collection.startDate.valueOf()) / (1000 * 60 * 60 * 24));
+    let daysToMaturity = Math.ceil(
+      (collection.maturityDate.valueOf() - collection.startDate.valueOf()) / (1000 * 60 * 60 * 24)
+    );
     let couponReturns = couponAPY.div(365.25).mul(daysToMaturity);
     return amount.add(couponReturns);
   }
@@ -428,7 +430,12 @@ export class Bond {
     let nftCollections = new Set(collections.map((c) => c.nftMint.toBase58()));
     let collectionsMap = new Map(collections.map((c) => [c.nftMint.toBase58(), c]));
     let nftsInWallet = (await this._metaplex.nfts().findAllByOwner({ owner: wallet })) as Nft[];
-    let bondNfts = nftsInWallet.filter((nft) => nftCollections.has(nft.collection!.address.toBase58()));
+    let bondNfts = nftsInWallet.filter((nft) => {
+      if (!nft.collection || !nft.collection!.address) {
+        return false;
+      }
+      nftCollections.has(nft.collection!.address.toBase58());
+    });
     let bondTokenModels: BondToken[] = [];
     await Promise.all(
       bondNfts.map(async (nft) => {
@@ -798,24 +805,24 @@ export class Bond {
 
   private mapToCollection(pre: CollectionIndividual): Collection {
     const collection = {
-    ...pre,
-    paymentUsdCost: new Decimal(pre.paymentUsdCost.toString()),
-    interestRate: new Decimal(pre.interestRate.toString()),
-    startDate: toDate(pre.startDate),
-    maturityDate: toDate(pre.maturityDate),
-    fundingDate: toDate(pre.fundingDate),
-    supply: pre.supply.toNumber(),
-    totalBondsMinted: pre.totalBondsMinted.toNumber()/(10 ** BOND_DECIMALS_UI),
-  };
-  return collection;
-};
+      ...pre,
+      paymentUsdCost: new Decimal(pre.paymentUsdCost.toString()),
+      interestRate: new Decimal(pre.interestRate.toString()),
+      startDate: toDate(pre.startDate),
+      maturityDate: toDate(pre.maturityDate),
+      fundingDate: toDate(pre.fundingDate),
+      supply: pre.supply.toNumber(),
+      totalBondsMinted: pre.totalBondsMinted.toNumber() / 10 ** BOND_DECIMALS_UI,
+    };
+    return collection;
+  }
 }
 
 function toDate(date: BN) {
-  return new Date(date.toNumber() * 1000)
+  return new Date(date.toNumber() * 1000);
 }
 
-type CollectionIndividual = IdlAccounts<BondType>['collection']
+type CollectionIndividual = IdlAccounts<BondType>['collection'];
 interface ViewReturnsOutput {
   amount: BN;
 }
