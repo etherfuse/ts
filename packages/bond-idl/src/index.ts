@@ -275,7 +275,7 @@ export type Bond = {
       accounts: [
         {
           name: 'owner';
-          isMut: false;
+          isMut: true;
           isSigner: true;
           docs: ['The owner of the nft that is collecting interest.'];
         },
@@ -284,6 +284,12 @@ export type Bond = {
           isMut: false;
           isSigner: false;
           docs: ['The collection of the bond for checks.'];
+        },
+        {
+          name: 'pass';
+          isMut: true;
+          isSigner: false;
+          docs: ['The pass account that is being added if needed'];
         },
         {
           name: 'ownerNftTokenAccount';
@@ -345,12 +351,6 @@ export type Bond = {
           isSigner: false;
         },
         {
-          name: 'pass';
-          isMut: true;
-          isSigner: false;
-          docs: ['The pass account that is being added if needed'];
-        },
-        {
           name: 'tokenProgram';
           isMut: false;
           isSigner: false;
@@ -397,6 +397,12 @@ export type Bond = {
           docs: ['The collection of the bond'];
         },
         {
+          name: 'pass';
+          isMut: true;
+          isSigner: false;
+          docs: ['The pass account that is being added if needed'];
+        },
+        {
           name: 'bondMint';
           isMut: true;
           isSigner: false;
@@ -438,12 +444,6 @@ export type Bond = {
           isSigner: false;
         },
         {
-          name: 'pass';
-          isMut: true;
-          isSigner: false;
-          docs: ['The pass account that is being added if needed'];
-        },
-        {
           name: 'tokenProgram';
           isMut: false;
           isSigner: false;
@@ -468,7 +468,7 @@ export type Bond = {
       accounts: [
         {
           name: 'owner';
-          isMut: false;
+          isMut: true;
           isSigner: true;
           docs: ['The owner of the nft that is collecting par value.'];
         },
@@ -477,6 +477,12 @@ export type Bond = {
           isMut: true;
           isSigner: false;
           docs: ['The collection of the bond for checks.'];
+        },
+        {
+          name: 'pass';
+          isMut: true;
+          isSigner: false;
+          docs: ['The pass account that is being added if needed'];
         },
         {
           name: 'ownerNftTokenAccount';
@@ -548,12 +554,6 @@ export type Bond = {
           name: 'kyc';
           isMut: false;
           isSigner: false;
-        },
-        {
-          name: 'pass';
-          isMut: true;
-          isSigner: false;
-          docs: ['The pass account that is being added if needed'];
         },
         {
           name: 'tokenProgram';
@@ -1847,7 +1847,7 @@ export const IDL: Bond = {
       accounts: [
         {
           name: 'owner',
-          isMut: false,
+          isMut: true,
           isSigner: true,
           docs: ['The owner of the nft that is collecting interest.'],
         },
@@ -1856,6 +1856,12 @@ export const IDL: Bond = {
           isMut: false,
           isSigner: false,
           docs: ['The collection of the bond for checks.'],
+        },
+        {
+          name: 'pass',
+          isMut: true,
+          isSigner: false,
+          docs: ['The pass account that is being added if needed'],
         },
         {
           name: 'ownerNftTokenAccount',
@@ -1917,12 +1923,6 @@ export const IDL: Bond = {
           isSigner: false,
         },
         {
-          name: 'pass',
-          isMut: true,
-          isSigner: false,
-          docs: ['The pass account that is being added if needed'],
-        },
-        {
           name: 'tokenProgram',
           isMut: false,
           isSigner: false,
@@ -1969,6 +1969,12 @@ export const IDL: Bond = {
           docs: ['The collection of the bond'],
         },
         {
+          name: 'pass',
+          isMut: true,
+          isSigner: false,
+          docs: ['The pass account that is being added if needed'],
+        },
+        {
           name: 'bondMint',
           isMut: true,
           isSigner: false,
@@ -2010,12 +2016,6 @@ export const IDL: Bond = {
           isSigner: false,
         },
         {
-          name: 'pass',
-          isMut: true,
-          isSigner: false,
-          docs: ['The pass account that is being added if needed'],
-        },
-        {
           name: 'tokenProgram',
           isMut: false,
           isSigner: false,
@@ -2040,7 +2040,7 @@ export const IDL: Bond = {
       accounts: [
         {
           name: 'owner',
-          isMut: false,
+          isMut: true,
           isSigner: true,
           docs: ['The owner of the nft that is collecting par value.'],
         },
@@ -2049,6 +2049,12 @@ export const IDL: Bond = {
           isMut: true,
           isSigner: false,
           docs: ['The collection of the bond for checks.'],
+        },
+        {
+          name: 'pass',
+          isMut: true,
+          isSigner: false,
+          docs: ['The pass account that is being added if needed'],
         },
         {
           name: 'ownerNftTokenAccount',
@@ -2120,12 +2126,6 @@ export const IDL: Bond = {
           name: 'kyc',
           isMut: false,
           isSigner: false,
-        },
-        {
-          name: 'pass',
-          isMut: true,
-          isSigner: false,
-          docs: ['The pass account that is being added if needed'],
         },
         {
           name: 'tokenProgram',
