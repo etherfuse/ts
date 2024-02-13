@@ -177,7 +177,7 @@
       "accounts": [
         {
           "name": "owner",
-          "isMut": false,
+          "isMut": true,
           "isSigner": true,
           "docs": ["The owner of the nft that is collecting interest."]
         },
@@ -186,6 +186,12 @@
           "isMut": false,
           "isSigner": false,
           "docs": ["The collection of the bond for checks."]
+        },
+        {
+          "name": "pass",
+          "isMut": true,
+          "isSigner": false,
+          "docs": ["The pass account that is being added if needed"]
         },
         {
           "name": "ownerNftTokenAccount",
@@ -247,12 +253,6 @@
           "isSigner": false
         },
         {
-          "name": "pass",
-          "isMut": true,
-          "isSigner": false,
-          "docs": ["The pass account that is being added if needed"]
-        },
-        {
           "name": "tokenProgram",
           "isMut": false,
           "isSigner": false
@@ -299,6 +299,12 @@
           "docs": ["The collection of the bond"]
         },
         {
+          "name": "pass",
+          "isMut": true,
+          "isSigner": false,
+          "docs": ["The pass account that is being added if needed"]
+        },
+        {
           "name": "bondMint",
           "isMut": true,
           "isSigner": false,
@@ -340,12 +346,6 @@
           "isSigner": false
         },
         {
-          "name": "pass",
-          "isMut": true,
-          "isSigner": false,
-          "docs": ["The pass account that is being added if needed"]
-        },
-        {
           "name": "tokenProgram",
           "isMut": false,
           "isSigner": false
@@ -370,7 +370,7 @@
       "accounts": [
         {
           "name": "owner",
-          "isMut": false,
+          "isMut": true,
           "isSigner": true,
           "docs": ["The owner of the nft that is collecting par value."]
         },
@@ -379,6 +379,12 @@
           "isMut": true,
           "isSigner": false,
           "docs": ["The collection of the bond for checks."]
+        },
+        {
+          "name": "pass",
+          "isMut": true,
+          "isSigner": false,
+          "docs": ["The pass account that is being added if needed"]
         },
         {
           "name": "ownerNftTokenAccount",
@@ -450,12 +456,6 @@
           "name": "kyc",
           "isMut": false,
           "isSigner": false
-        },
-        {
-          "name": "pass",
-          "isMut": true,
-          "isSigner": false,
-          "docs": ["The pass account that is being added if needed"]
         },
         {
           "name": "tokenProgram",
