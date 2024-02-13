@@ -248,8 +248,9 @@
         },
         {
           "name": "pass",
-          "isMut": false,
-          "isSigner": false
+          "isMut": true,
+          "isSigner": false,
+          "docs": ["The pass account that is being added if needed"]
         },
         {
           "name": "tokenProgram",
@@ -340,8 +341,9 @@
         },
         {
           "name": "pass",
-          "isMut": false,
-          "isSigner": false
+          "isMut": true,
+          "isSigner": false,
+          "docs": ["The pass account that is being added if needed"]
         },
         {
           "name": "tokenProgram",
@@ -451,8 +453,9 @@
         },
         {
           "name": "pass",
-          "isMut": false,
-          "isSigner": false
+          "isMut": true,
+          "isSigner": false,
+          "docs": ["The pass account that is being added if needed"]
         },
         {
           "name": "tokenProgram",
