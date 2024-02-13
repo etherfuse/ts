@@ -346,8 +346,9 @@ export type Bond = {
         },
         {
           name: 'pass';
-          isMut: false;
+          isMut: true;
           isSigner: false;
+          docs: ['The pass account that is being added if needed'];
         },
         {
           name: 'tokenProgram';
@@ -438,8 +439,9 @@ export type Bond = {
         },
         {
           name: 'pass';
-          isMut: false;
+          isMut: true;
           isSigner: false;
+          docs: ['The pass account that is being added if needed'];
         },
         {
           name: 'tokenProgram';
@@ -549,8 +551,9 @@ export type Bond = {
         },
         {
           name: 'pass';
-          isMut: false;
+          isMut: true;
           isSigner: false;
+          docs: ['The pass account that is being added if needed'];
         },
         {
           name: 'tokenProgram';
@@ -1915,8 +1918,9 @@ export const IDL: Bond = {
         },
         {
           name: 'pass',
-          isMut: false,
+          isMut: true,
           isSigner: false,
+          docs: ['The pass account that is being added if needed'],
         },
         {
           name: 'tokenProgram',
@@ -2007,8 +2011,9 @@ export const IDL: Bond = {
         },
         {
           name: 'pass',
-          isMut: false,
+          isMut: true,
           isSigner: false,
+          docs: ['The pass account that is being added if needed'],
         },
         {
           name: 'tokenProgram',
@@ -2118,8 +2123,9 @@ export const IDL: Bond = {
         },
         {
           name: 'pass',
-          isMut: false,
+          isMut: true,
           isSigner: false,
+          docs: ['The pass account that is being added if needed'],
         },
         {
           name: 'tokenProgram',
