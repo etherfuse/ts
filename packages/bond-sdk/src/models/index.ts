@@ -12,4 +12,5 @@ export * from './Oracle';
 export * from './ParValueAccount';
 export * from './Pass';
 export * from './PaymentAccount';
+export * from './Stablebond';
 export * from './TokenMetadata';
