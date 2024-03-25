@@ -11,7 +11,8 @@ export interface Stablebond {
     paymentPriceFeedId: Address;
     paymentMint: Address;
     version: number;
-    padding: Array<number>;
+    padding: number[];
+    issuances: StablebondIssuance[];
   }
   
   export interface StablebondToken {
@@ -35,7 +36,7 @@ export interface Stablebond {
     status: IssuanceStatus;
     parentBond: Address;
     version: number;
-    padding: Array<number>;
+    padding: number[];
   }
 
   export enum IssuanceStatus {
