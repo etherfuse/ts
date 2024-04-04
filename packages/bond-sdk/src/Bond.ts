@@ -445,12 +445,22 @@ export class Bond {
       bondNfts.map(async (nft) => {
         let collection = collectionsMap.get(nft.collection!.address.toBase58());
         if (collection) {
+          let simulatedPriceError = false;
+          let coupon = new Decimal(0);
+          let parValue = new Decimal(0);
+          let balance = new Decimal(0);
+          let imageUrl = '';
           let nftMint = new PublicKey(nft.mint);
           let nftAddress = this.getNftAddress(nftMint);
-          let balance = await this.fetchPdaTokenAccountBalance(nftAddress, collection.mint);
-          let couponReturns = await this.viewCouponForNftReturns(nftMint, collection);
-          let parValueReturns = await this.viewParValueForNftReturns(nftMint, collection);
-          let imageUrl = await this.fetchImageFromURI(collection.nftUri);
+          try {
+            imageUrl = await this.fetchImageFromURI(collection.nftUri);
+            balance = await this.fetchPdaTokenAccountBalance(nftAddress, collection.mint);
+            coupon = await this.viewCouponForNftReturns(nftMint, collection);
+            parValue = await this.viewParValueForNftReturns(nftMint, collection);
+          } catch (e) {
+            simulatedPriceError = true;
+          }
+          
           let bondNft: BondToken = {
             mint: nftMint,
             collectionMint: collection.mint,
@@ -458,11 +468,11 @@ export class Bond {
             description: collection.description,
             interestRate: new Decimal(collection.interestRate),
             supply: balance,
-            coupon: couponReturns,
-            parValue: parValueReturns,
+            coupon,
+            parValue,
             uri: collection.nftUri,
-            imageUrl: imageUrl,
-            simulatedPriceError: false,
+            imageUrl,
+            simulatedPriceError,
           };
           bondTokenModels.push(bondNft);
         }
@@ -473,9 +483,17 @@ export class Bond {
       collections.map(async (c) => {
         let balance = (await balanceMap).get(c.mint.toBase58()) || new Decimal(0);
         if (balance.greaterThan(0)) {
-          let couponReturns = await this.viewCouponReturns(balance, c);
-          let parValueReturns = await this.viewParValueReturns(balance, c);
-          let imageUrl = await this.fetchImageFromURI(c.tokenUri);
+          let simulatedPriceError = false;
+          let coupon = new Decimal(0);
+          let parValue = new Decimal(0);
+          let imageUrl = '';
+          try {
+            imageUrl = await this.fetchImageFromURI(c.tokenUri);
+            coupon = await this.viewCouponReturns(balance, c);
+            parValue = await this.viewParValueReturns(balance, c);
+          } catch (e) {
+            simulatedPriceError = true;
+          }
           let bondToken: BondToken = {
             mint: c.mint,
             collectionMint: c.mint,
@@ -483,11 +501,11 @@ export class Bond {
             description: c.description,
             interestRate: new Decimal(c.interestRate),
             supply: new Decimal(balance),
-            coupon: couponReturns,
-            parValue: parValueReturns,
+            coupon,
+            parValue,
             uri: c.tokenUri,
-            imageUrl: imageUrl,
-            simulatedPriceError: false,
+            imageUrl,
+            simulatedPriceError,
           };
           bondTokenModels.push(bondToken);
         }
